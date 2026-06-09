@@ -1,0 +1,48 @@
+package com.digital.community.controller;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.digital.community.common.Result;
+import com.digital.community.dto.PostDTO;
+import com.digital.community.service.PostService;
+import com.digital.community.vo.PostVO;
+import jakarta.annotation.Resource;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/posts")
+public class PostController {
+
+    @Resource
+    private PostService postService;
+
+    @GetMapping
+    public Result<Page<PostVO>> page(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer type) {
+        return Result.success(postService.page(pageNum, pageSize, categoryId, type));
+    }
+
+    @GetMapping("/latest")
+    public Result<List<PostVO>> latest() {
+        return Result.success(postService.latestPosts());
+    }
+
+    @GetMapping("/hot")
+    public Result<List<PostVO>> hot() {
+        return Result.success(postService.hotPosts());
+    }
+
+    @GetMapping("/{id}")
+    public Result<PostVO> detail(@PathVariable Long id) {
+        return Result.success(postService.detail(id));
+    }
+
+    @PostMapping
+    public Result<Long> create(@RequestHeader("X-User-Id") Long userId, @RequestBody PostDTO dto) {
+        return Result.success(postService.create(userId, dto));
+    }
+}
