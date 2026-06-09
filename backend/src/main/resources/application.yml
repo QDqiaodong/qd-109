@@ -3,11 +3,17 @@ spring:
     active: dev
   application:
     name: digital-community
+  jackson:
+    time-zone: Asia/Shanghai
 
 server:
   port: 9032
   servlet:
     context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
