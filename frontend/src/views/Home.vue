@@ -3,25 +3,33 @@
     <div class="home-layout">
       <div class="main-content">
         <div class="section-tabs">
-          <el-radio-group v-model="activeTab" size="large">
+          <el-radio-group v-model="activeTab" size="large" @change="handleTabChange">
             <el-radio-button label="latest">最新发布</el-radio-button>
             <el-radio-button label="hot">热门讨论</el-radio-button>
           </el-radio-group>
         </div>
 
-        <div class="post-list" v-loading="loading">
-          <PostCard v-for="post in postList" :key="post.id" :post="post" />
-          <el-empty v-if="!loading && postList.length === 0" description="暂无帖子" />
-        </div>
+        <div class="post-list">
+          <template v-if="infinite.initialLoading.value">
+            <PostSkeleton v-for="i in 5" :key="i" />
+          </template>
+          <template v-else>
+            <PostCard v-for="post in infinite.list.value" :key="post.id" :post="post" />
+            <el-empty v-if="!infinite.loading.value && infinite.list.value.length === 0" description="暂无帖子" />
+          </template>
 
-        <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pageNum"
-            v-model:page-size="pageSize"
-            :total="total"
-            layout="prev, pager, next"
-            @current-change="loadPosts"
-          />
+          <div class="load-more-wrap">
+            <div v-if="infinite.loading.value && !infinite.initialLoading.value">
+              <PostSkeleton v-for="i in 3" :key="'load-' + i" />
+            </div>
+            <InfiniteLoadMore
+              v-if="!infinite.initialLoading.value"
+              :loading="infinite.loading.value"
+              :error="infinite.error.value"
+              :finished="infinite.finished.value"
+              @retry="infinite.retry"
+            />
+          </div>
         </div>
       </div>
 
@@ -66,39 +74,42 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getPostList, getHotPosts, getCategories } from '@/api'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
+import PostSkeleton from '@/components/PostSkeleton.vue'
+import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
 
 const activeTab = ref('latest')
-const postList = ref([])
 const hotPosts = ref([])
 const categories = ref([])
-const loading = ref(false)
 const hotLoading = ref(false)
-const pageNum = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
+
+const fetchPosts = (params) => {
+  return getPostList({
+    ...params,
+    sort: activeTab.value
+  })
+}
+
+const infinite = useInfiniteScroll(fetchPosts, {
+  pageSize: 10,
+  immediate: false,
+  useWindowScroll: true,
+  threshold: 200
+})
+
+const handleTabChange = () => {
+  infinite.reload()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 onMounted(() => {
-  loadPosts()
+  infinite.loadMore()
   loadHotPosts()
   loadCategories()
 })
-
-const loadPosts = async () => {
-  loading.value = true
-  try {
-    const res = await getPostList({
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
-    })
-    postList.value = res.records
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
 
 const loadHotPosts = async () => {
   hotLoading.value = true
@@ -139,10 +150,8 @@ const loadCategories = async () => {
     margin-bottom: 20px;
   }
 
-  .pagination-wrap {
-    display: flex;
-    justify-content: center;
-    padding: 20px 0;
+  .load-more-wrap {
+    margin-top: -16px;
   }
 
   .sidebar-title {

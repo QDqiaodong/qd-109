@@ -11,26 +11,34 @@
     <div class="category-layout">
       <div class="main-content">
         <div class="filter-tabs">
-          <el-radio-group v-model="postType" size="large">
+          <el-radio-group v-model="postType" size="large" @change="handlePostTypeChange">
             <el-radio-button :label="null">全部</el-radio-button>
             <el-radio-button :label="1">体验分享</el-radio-button>
             <el-radio-button :label="2">问题求助</el-radio-button>
           </el-radio-group>
         </div>
 
-        <div class="post-list" v-loading="loading">
-          <PostCard v-for="post in postList" :key="post.id" :post="post" />
-          <el-empty v-if="!loading && postList.length === 0" description="该分类下暂无帖子" />
-        </div>
+        <div class="post-list">
+          <template v-if="infinite.initialLoading.value">
+            <PostSkeleton v-for="i in 5" :key="i" />
+          </template>
+          <template v-else>
+            <PostCard v-for="post in infinite.list.value" :key="post.id" :post="post" />
+            <el-empty v-if="!infinite.loading.value && infinite.list.value.length === 0" description="该分类下暂无帖子" />
+          </template>
 
-        <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="pageNum"
-            v-model:page-size="pageSize"
-            :total="total"
-            layout="prev, pager, next"
-            @current-change="loadPosts"
-          />
+          <div class="load-more-wrap">
+            <div v-if="infinite.loading.value && !infinite.initialLoading.value">
+              <PostSkeleton v-for="i in 3" :key="'load-' + i" />
+            </div>
+            <InfiniteLoadMore
+              v-if="!infinite.initialLoading.value"
+              :loading="infinite.loading.value"
+              :error="infinite.error.value"
+              :finished="infinite.finished.value"
+              @retry="infinite.retry"
+            />
+          </div>
         </div>
       </div>
 
@@ -58,55 +66,53 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPostList, getCategories } from '@/api'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
+import PostSkeleton from '@/components/PostSkeleton.vue'
+import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
 
 const route = useRoute()
 const categoryId = computed(() => route.params.id)
-const postList = ref([])
 const categories = ref([])
-const loading = ref(false)
-const pageNum = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
 const postType = ref(null)
 
 const currentCategory = computed(() => {
   return categories.value.find(c => c.id == categoryId.value)
 })
 
-onMounted(() => {
-  loadCategories()
-  loadPosts()
+const fetchPosts = (params) => {
+  return getPostList({
+    ...params,
+    categoryId: categoryId.value,
+    type: postType.value
+  })
+}
+
+const infinite = useInfiniteScroll(fetchPosts, {
+  pageSize: 10,
+  immediate: false,
+  useWindowScroll: true,
+  threshold: 200
 })
+
+const handlePostTypeChange = () => {
+  infinite.reload()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 watch(categoryId, () => {
-  pageNum.value = 1
-  loadPosts()
+  postType.value = null
+  infinite.reload()
+  window.scrollTo({ top: 0, behavior: 'auto' })
 })
 
-watch(postType, () => {
-  pageNum.value = 1
-  loadPosts()
+onMounted(() => {
+  loadCategories()
+  infinite.loadMore()
 })
 
 const loadCategories = async () => {
   categories.value = await getCategories()
-}
-
-const loadPosts = async () => {
-  loading.value = true
-  try {
-    const res = await getPostList({
-      pageNum: pageNum.value,
-      pageSize: pageSize.value,
-      categoryId: categoryId.value,
-      type: postType.value
-    })
-    postList.value = res.records
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
 }
 </script>
 
@@ -156,10 +162,8 @@ const loadPosts = async () => {
     margin-bottom: 20px;
   }
 
-  .pagination-wrap {
-    display: flex;
-    justify-content: center;
-    padding: 20px 0;
+  .load-more-wrap {
+    margin-top: -16px;
   }
 
   .sidebar-title {
