@@ -17,7 +17,7 @@
         <router-link to="/create" class="btn-create">
           <span>✏️ 发布帖子</span>
         </router-link>
-        <div class="user-area" v-if="userStore.userInfo">
+        <div class="user-area" v-if="userStore.isLoggedIn">
           <el-avatar :src="userStore.userInfo.avatar" :size="32" />
           <span class="nickname">{{ userStore.userInfo.nickname }}</span>
           <el-button type="text" @click="userStore.logout()">退出</el-button>

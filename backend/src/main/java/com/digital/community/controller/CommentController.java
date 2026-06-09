@@ -1,7 +1,9 @@
 package com.digital.community.controller;
 
 import com.digital.community.common.Result;
+import com.digital.community.context.UserContext;
 import com.digital.community.dto.CommentDTO;
+import com.digital.community.exception.UnauthorizedException;
 import com.digital.community.service.CommentService;
 import com.digital.community.vo.CommentVO;
 import jakarta.annotation.Resource;
@@ -22,7 +24,11 @@ public class CommentController {
     }
 
     @PostMapping
-    public Result<Long> create(@RequestHeader("X-User-Id") Long userId, @RequestBody CommentDTO dto) {
+    public Result<Long> create(@RequestBody CommentDTO dto) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new UnauthorizedException("请先登录后再发表评论");
+        }
         return Result.success(commentService.create(userId, dto));
     }
 }

@@ -2,7 +2,9 @@ package com.digital.community.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.digital.community.common.Result;
+import com.digital.community.context.UserContext;
 import com.digital.community.dto.PostDTO;
+import com.digital.community.exception.UnauthorizedException;
 import com.digital.community.service.PostService;
 import com.digital.community.vo.PostVO;
 import jakarta.annotation.Resource;
@@ -42,7 +44,11 @@ public class PostController {
     }
 
     @PostMapping
-    public Result<Long> create(@RequestHeader("X-User-Id") Long userId, @RequestBody PostDTO dto) {
+    public Result<Long> create(@RequestBody PostDTO dto) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new UnauthorizedException("请先登录后再发布帖子");
+        }
         return Result.success(postService.create(userId, dto));
     }
 }

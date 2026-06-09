@@ -102,7 +102,7 @@ const handleImageChange = (info) => {
 }
 
 onMounted(() => {
-  if (!userStore.userInfo) {
+  if (!userStore.checkLogin()) {
     ElMessageBox.alert('请先登录后再发布帖子', '提示', {
       confirmButtonText: '确定',
       callback: () => router.push('/')
@@ -154,6 +154,14 @@ const submit = async () => {
 }
 
 const doSubmit = async () => {
+  if (!userStore.checkLogin()) {
+    ElMessageBox.alert('登录状态已失效，请重新登录后再发布', '提示', {
+      confirmButtonText: '确定',
+      callback: () => router.push('/')
+    })
+    return
+  }
+
   submitting.value = true
   try {
     await createPost({
