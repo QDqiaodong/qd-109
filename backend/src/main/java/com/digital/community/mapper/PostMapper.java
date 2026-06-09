@@ -6,6 +6,7 @@ import com.digital.community.entity.Post;
 import com.digital.community.vo.PostVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import java.util.List;
 
 @Mapper
 public interface PostMapper extends BaseMapper<Post> {
