@@ -45,17 +45,7 @@
             </el-form-item>
 
             <el-form-item label="上传图片">
-              <el-upload
-                v-model:file-list="fileList"
-                action="#"
-                list-type="picture-card"
-                :auto-upload="false"
-                :limit="9"
-                accept="image/*"
-              >
-                <el-icon><Plus /></el-icon>
-              </el-upload>
-              <div class="upload-tip">最多上传9张图片，支持jpg、png格式</div>
+              <ImageUpload v-model="images" :limit="9" @change="handleImageChange" />
             </el-form-item>
 
             <el-form-item>
@@ -88,15 +78,16 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus } from '@element-plus/icons-vue'
 import { getCategories, createPost } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const categories = ref([])
-const fileList = ref([])
+const images = ref([])
+const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
 const submitting = ref(false)
 
 const form = reactive({
@@ -105,6 +96,10 @@ const form = reactive({
   title: '',
   content: ''
 })
+
+const handleImageChange = (info) => {
+  imageInfo.value = info
+}
 
 onMounted(() => {
   if (!userStore.userInfo) {
@@ -135,12 +130,35 @@ const submit = async () => {
     return
   }
 
+  if (imageInfo.value.failedCount > 0) {
+    ElMessageBox.confirm(
+      `有 ${imageInfo.value.failedCount} 张图片上传失败，是否继续发布？失败的图片将不会被包含。`,
+      '提示',
+      {
+        confirmButtonText: '继续发布',
+        cancelButtonText: '返回修改',
+        type: 'warning'
+      }
+    ).then(async () => {
+      await doSubmit()
+    }).catch(() => {})
+    return
+  }
+
+  if (imageInfo.value.uploadingCount > 0) {
+    ElMessage.warning('图片正在上传中，请稍候...')
+    return
+  }
+
+  await doSubmit()
+}
+
+const doSubmit = async () => {
   submitting.value = true
   try {
-    const images = fileList.value.map(f => f.url || 'https://picsum.photos/600/400?random=' + Math.random())
     await createPost({
       ...form,
-      images
+      images: images.value
     })
     ElMessage.success('发布成功')
     router.push('/')
@@ -174,12 +192,6 @@ const submit = async () => {
     margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid #f0f0f0;
-  }
-
-  .upload-tip {
-    font-size: 12px;
-    color: #999;
-    margin-top: 8px;
   }
 
   .sidebar-title {
