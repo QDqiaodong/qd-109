@@ -28,6 +28,21 @@ public class PostController {
         return Result.success(postService.page(pageNum, pageSize, categoryId, type));
     }
 
+    @GetMapping("/search")
+    public Result<Page<PostVO>> search(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer type) {
+        return Result.success(postService.search(pageNum, pageSize, keyword, categoryId, type));
+    }
+
+    @GetMapping("/search/suggestions")
+    public Result<List<PostVO>> searchSuggestions(@RequestParam String keyword) {
+        return Result.success(postService.searchSuggestions(keyword));
+    }
+
     @GetMapping("/latest")
     public Result<List<PostVO>> latest() {
         return Result.success(postService.latestPosts());

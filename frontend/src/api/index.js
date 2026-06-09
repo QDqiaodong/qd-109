@@ -11,5 +11,8 @@ export const getHotPosts = () => request.get('/posts/hot')
 export const getPostDetail = (id) => request.get(`/posts/${id}`)
 export const createPost = (data) => request.post('/posts', data)
 
+export const searchPosts = (params) => request.get('/posts/search', { params })
+export const getSearchSuggestions = (keyword) => request.get('/posts/search/suggestions', { params: { keyword } })
+
 export const getComments = (postId) => request.get('/comments', { params: { postId } })
 export const createComment = (data) => request.post('/comments', data)

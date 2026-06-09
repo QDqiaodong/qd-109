@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface PostMapper extends BaseMapper<Post> {
-    Page<PostVO> selectPostPage(Page<PostVO> page, @Param("categoryId") Long categoryId, @Param("type") Integer type);
+    Page<PostVO> selectPostPage(Page<PostVO> page, @Param("categoryId") Long categoryId, @Param("type") Integer type, @Param("keyword") String keyword);
     PostVO selectPostById(@Param("id") Long id);
+    List<PostVO> selectPostSuggestions(@Param("keyword") String keyword);
 }
