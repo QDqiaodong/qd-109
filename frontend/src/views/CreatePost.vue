@@ -48,6 +48,10 @@
               <ImageUpload v-model="images" :limit="9" @change="handleImageChange" />
             </el-form-item>
 
+            <el-form-item label="配件参数">
+              <AccessoryCardEditor v-model="accessoryCards" />
+            </el-form-item>
+
             <el-form-item>
               <el-button type="primary" size="large" @click="submit" :loading="submitting">
                 发布帖子
@@ -82,12 +86,14 @@ import { getCategories, createPost } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ImageUpload from '@/components/ImageUpload.vue'
+import AccessoryCardEditor from '@/components/AccessoryCardEditor.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
+const accessoryCards = ref([])
 const submitting = ref(false)
 
 const form = reactive({
@@ -166,7 +172,8 @@ const doSubmit = async () => {
   try {
     await createPost({
       ...form,
-      images: images.value
+      images: images.value,
+      accessoryCards: accessoryCards.value
     })
     ElMessage.success('发布成功')
     router.push('/')

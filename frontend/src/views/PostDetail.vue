@@ -20,6 +20,14 @@
             <span class="category-tag">{{ post?.categoryName }}</span>
           </div>
 
+          <div class="accessory-cards" v-if="post?.accessoryCards?.length">
+            <AccessoryCard
+              v-for="(card, idx) in post.accessoryCards"
+              :key="idx"
+              :card="card"
+            />
+          </div>
+
           <div class="post-content">
             <p v-for="(para, idx) in contentParagraphs" :key="idx">{{ para }}</p>
           </div>
@@ -119,6 +127,7 @@ import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
+import AccessoryCard from '@/components/AccessoryCard.vue'
 
 const route = useRoute()
 const userStore = useUserStore()

@@ -2,17 +2,23 @@ package com.digital.community.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.digital.community.dto.AccessoryCardDTO;
 import com.digital.community.dto.PostDTO;
 import com.digital.community.entity.Post;
 import com.digital.community.mapper.PostMapper;
+import com.digital.community.vo.AccessoryCardVO;
 import com.digital.community.vo.PostVO;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class PostService {
@@ -76,6 +82,8 @@ public class PostService {
         return postMapper.selectPostById(id);
     }
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     @Transactional(rollbackFor = Exception.class)
     public Long create(Long userId, PostDTO dto) {
         Post post = new Post();
@@ -85,6 +93,16 @@ public class PostService {
         post.setContent(dto.getContent());
         if (dto.getImages() != null && !dto.getImages().isEmpty()) {
             post.setImages(String.join(",", dto.getImages()));
+        }
+        if (dto.getAccessoryCards() != null && !dto.getAccessoryCards().isEmpty()) {
+            try {
+                List<AccessoryCardVO> cardVOs = dto.getAccessoryCards().stream()
+                        .map(this::convertToVO)
+                        .collect(Collectors.toList());
+                post.setAccessoryCards(objectMapper.writeValueAsString(cardVOs));
+            } catch (Exception e) {
+                post.setAccessoryCards(null);
+            }
         }
         post.setType(dto.getType() != null ? dto.getType() : 1);
         post.setViewCount(0);
@@ -97,6 +115,17 @@ public class PostService {
         redisTemplate.delete(HOT_POSTS_KEY);
 
         return post.getId();
+    }
+
+    private AccessoryCardVO convertToVO(AccessoryCardDTO dto) {
+        AccessoryCardVO vo = new AccessoryCardVO();
+        vo.setModel(dto.getModel());
+        vo.setInterfaceType(dto.getInterfaceType());
+        vo.setCompatibleDevices(dto.getCompatibleDevices());
+        vo.setUsageScenarios(dto.getUsageScenarios());
+        vo.setPros(dto.getPros());
+        vo.setCons(dto.getCons());
+        return vo;
     }
 
     public void incrementCommentCount(Long postId) {

@@ -16,6 +16,7 @@ public class Post {
     private String title;
     private String content;
     private String images;
+    private String accessoryCards;
     private Integer type;
     private Integer viewCount;
     private Integer likeCount;

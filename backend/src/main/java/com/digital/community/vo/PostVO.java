@@ -15,6 +15,7 @@ public class PostVO {
     private String title;
     private String content;
     private List<String> images;
+    private List<AccessoryCardVO> accessoryCards;
     private Integer type;
     private Integer viewCount;
     private Integer likeCount;
