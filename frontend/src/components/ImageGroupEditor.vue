@@ -242,6 +242,22 @@ watch(
 )
 
 watch(
+  allImages,
+  (list) => {
+    const validUids = new Set(list.map(img => img.uid))
+    const validUrls = new Set(list.map(img => img.url || img.previewUrl))
+
+    groups.value.forEach(group => {
+      group.images = group.images.filter(img => {
+        const imageUrl = img.url || img.previewUrl
+        return validUids.has(img.uid) || validUrls.has(imageUrl)
+      })
+    })
+  },
+  { deep: true }
+)
+
+watch(
   groups,
   () => {
     const output = groups.value
