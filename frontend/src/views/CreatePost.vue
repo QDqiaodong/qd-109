@@ -146,8 +146,8 @@ const submit = async () => {
     ElMessage.warning('请输入标题')
     return
   }
-  if (!form.content.trim()) {
-    ElMessage.warning('请输入内容')
+  if (!form.content.trim() && !(form.type === 2 && hasFaultTemplateContent())) {
+    ElMessage.warning('请输入内容或填写故障现象模板')
     return
   }
 
@@ -201,6 +201,18 @@ const generateFaultTemplateContent = () => {
   return lines.join('\n')
 }
 
+const contentHasTemplateMarkers = (content) => {
+  if (!content) return false
+  const markers = [
+    '📱 **设备型号**',
+    '🔧 **配件型号**',
+    '🔌 **连接方式**',
+    '❓ **出现症状**',
+    '🔄 **已尝试动作**'
+  ]
+  return markers.some(m => content.includes(m))
+}
+
 const doSubmit = async () => {
   if (!userStore.checkLogin()) {
     ElMessageBox.alert('登录状态已失效，请重新登录后再发布', '提示', {
@@ -213,7 +225,7 @@ const doSubmit = async () => {
   submitting.value = true
   try {
     let finalContent = form.content
-    if (form.type === 2 && hasFaultTemplateContent()) {
+    if (form.type === 2 && hasFaultTemplateContent() && !contentHasTemplateMarkers(finalContent)) {
       const templateContent = generateFaultTemplateContent()
       if (templateContent) {
         if (finalContent.trim()) {
