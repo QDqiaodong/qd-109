@@ -12,6 +12,7 @@
         <result column="title" property="title"/>
         <result column="content" property="content"/>
         <result column="images" property="images" typeHandler="com.digital.community.handler.StringListTypeHandler"/>
+        <result column="image_groups" property="imageGroups" typeHandler="com.digital.community.handler.ImageGroupListTypeHandler"/>
         <result column="accessory_cards" property="accessoryCards" typeHandler="com.digital.community.handler.AccessoryCardListTypeHandler"/>
         <result column="type" property="type"/>
         <result column="view_count" property="viewCount"/>

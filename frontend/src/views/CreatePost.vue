@@ -49,7 +49,23 @@
             </el-form-item>
 
             <el-form-item label="上传图片">
-              <ImageUpload v-model="images" :limit="9" @change="handleImageChange" />
+              <ImageUpload v-model="images" :limit="20" @change="handleImageChange" />
+            </el-form-item>
+
+            <el-form-item label="图片编排" v-if="form.type === 1 && allImageItems.length > 0">
+              <ImageGroupEditor
+                v-model="imageGroups"
+                :image-list="allImageItems"
+                @change="handleGroupChange"
+              />
+              <div class="form-item-tip" v-if="imageGroupInfo.organizedCount > 0 && imageGroupInfo.organizedCount < imageGroupInfo.total">
+                <el-icon><InfoFilled /></el-icon>
+                还有 <strong>{{ imageGroupInfo.total - imageGroupInfo.organizedCount }}</strong> 张图片未编排，未编排的图片不会按分组顺序展示
+              </div>
+              <div class="form-item-tip success" v-if="imageGroupInfo.organizedCount > 0 && imageGroupInfo.organizedCount === imageGroupInfo.total">
+                <el-icon><CircleCheckFilled /></el-icon>
+                全部 {{ imageGroupInfo.total }} 张图片已完成编排，浏览者将按你的节奏查看
+              </div>
             </el-form-item>
 
             <el-form-item label="配件参数">
@@ -84,12 +100,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCategories, createPost } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { InfoFilled, CircleCheckFilled } from '@element-plus/icons-vue'
 import ImageUpload from '@/components/ImageUpload.vue'
+import ImageGroupEditor from '@/components/ImageGroupEditor.vue'
 import AccessoryCardEditor from '@/components/AccessoryCardEditor.vue'
 import FaultTemplate from '@/components/FaultTemplate.vue'
 
@@ -98,6 +116,9 @@ const userStore = useUserStore()
 const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
+const allImageItems = computed(() => imageInfo.value.all || [])
+const imageGroups = ref([])
+const imageGroupInfo = reactive({ organizedCount: 0, total: 0, groups: [] })
 const accessoryCards = ref([])
 const faultTemplate = ref({})
 const submitting = ref(false)
@@ -111,6 +132,12 @@ const form = reactive({
 
 const handleImageChange = (info) => {
   imageInfo.value = info
+}
+
+const handleGroupChange = (info) => {
+  imageGroupInfo.organizedCount = info.organizedCount || 0
+  imageGroupInfo.total = info.total || 0
+  imageGroupInfo.groups = info.groups || []
 }
 
 const applyTemplateContent = (content) => {
@@ -236,12 +263,16 @@ const doSubmit = async () => {
       }
     }
 
-    await createPost({
+    const postData = {
       ...form,
       content: finalContent,
       images: images.value,
       accessoryCards: accessoryCards.value
-    })
+    }
+    if (form.type === 1 && imageGroups.value && imageGroups.value.length > 0) {
+      postData.imageGroups = imageGroups.value
+    }
+    await createPost(postData)
     ElMessage.success('发布成功')
     router.push('/')
   } catch (e) {
@@ -299,6 +330,41 @@ const doSubmit = async () => {
         left: 0;
         color: #52c41a;
         font-weight: 600;
+      }
+    }
+  }
+
+  .form-item-tip {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #d48806;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.6;
+
+    .el-icon {
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+
+    strong {
+      color: #ad6800;
+      font-weight: 600;
+      margin: 0 2px;
+    }
+
+    &.success {
+      background: #f0f9eb;
+      border-color: #c2e7b0;
+      color: #52c41a;
+
+      strong {
+        color: #389e0d;
       }
     }
   }

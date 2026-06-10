@@ -3,10 +3,12 @@ package com.digital.community.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.digital.community.dto.AccessoryCardDTO;
+import com.digital.community.dto.ImageGroupDTO;
 import com.digital.community.dto.PostDTO;
 import com.digital.community.entity.Post;
 import com.digital.community.mapper.PostMapper;
 import com.digital.community.vo.AccessoryCardVO;
+import com.digital.community.vo.ImageGroupVO;
 import com.digital.community.vo.PostVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -94,6 +96,23 @@ public class PostService {
         if (dto.getImages() != null && !dto.getImages().isEmpty()) {
             post.setImages(String.join(",", dto.getImages()));
         }
+        if (dto.getImageGroups() != null && !dto.getImageGroups().isEmpty()) {
+            try {
+                List<ImageGroupVO> groupVOs = dto.getImageGroups().stream()
+                        .map(this::convertImageGroupToVO)
+                        .collect(Collectors.toList());
+                post.setImageGroups(objectMapper.writeValueAsString(groupVOs));
+                List<String> allGroupImages = groupVOs.stream()
+                        .filter(g -> g.getImages() != null)
+                        .flatMap(g -> g.getImages().stream())
+                        .collect(Collectors.toList());
+                if (allGroupImages.size() > 0) {
+                    post.setImages(String.join(",", allGroupImages));
+                }
+            } catch (Exception e) {
+                post.setImageGroups(null);
+            }
+        }
         if (dto.getAccessoryCards() != null && !dto.getAccessoryCards().isEmpty()) {
             try {
                 List<AccessoryCardVO> cardVOs = dto.getAccessoryCards().stream()
@@ -125,6 +144,15 @@ public class PostService {
         vo.setUsageScenarios(dto.getUsageScenarios());
         vo.setPros(dto.getPros());
         vo.setCons(dto.getCons());
+        return vo;
+    }
+
+    private ImageGroupVO convertImageGroupToVO(ImageGroupDTO dto) {
+        ImageGroupVO vo = new ImageGroupVO();
+        vo.setKey(dto.getKey());
+        vo.setLabel(dto.getLabel());
+        vo.setImages(dto.getImages());
+        vo.setSort(dto.getSort());
         return vo;
     }
 

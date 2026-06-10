@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS t_post (
     title VARCHAR(200) NOT NULL,
     content TEXT,
     images TEXT,
+    image_groups TEXT COMMENT '图片分组JSON数组：外观/接口/上机效果/桌搭全景',
     accessory_cards TEXT COMMENT '配件参数卡片JSON数组',
     type TINYINT DEFAULT 1 COMMENT '1:体验分享 2:问题求助',
     view_count INT DEFAULT 0,
