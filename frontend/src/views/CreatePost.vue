@@ -116,7 +116,10 @@ const userStore = useUserStore()
 const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
-const allImageItems = computed(() => imageInfo.value.all || [])
+const allImageItems = computed(() => {
+  const list = imageInfo.value.all || []
+  return list.slice()
+})
 const imageGroups = ref([])
 const imageGroupInfo = reactive({ organizedCount: 0, total: 0, groups: [] })
 const accessoryCards = ref([])

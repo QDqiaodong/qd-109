@@ -10,14 +10,12 @@ import com.digital.community.mapper.PostMapper;
 import com.digital.community.vo.AccessoryCardVO;
 import com.digital.community.vo.ImageGroupVO;
 import com.digital.community.vo.PostVO;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -93,25 +91,28 @@ public class PostService {
         post.setCategoryId(dto.getCategoryId());
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
-        if (dto.getImages() != null && !dto.getImages().isEmpty()) {
-            post.setImages(String.join(",", dto.getImages()));
-        }
         if (dto.getImageGroups() != null && !dto.getImageGroups().isEmpty()) {
             try {
                 List<ImageGroupVO> groupVOs = dto.getImageGroups().stream()
                         .map(this::convertImageGroupToVO)
                         .collect(Collectors.toList());
                 post.setImageGroups(objectMapper.writeValueAsString(groupVOs));
-                List<String> allGroupImages = groupVOs.stream()
-                        .filter(g -> g.getImages() != null)
-                        .flatMap(g -> g.getImages().stream())
-                        .collect(Collectors.toList());
-                if (allGroupImages.size() > 0) {
-                    post.setImages(String.join(",", allGroupImages));
+                if (dto.getImages() == null || dto.getImages().isEmpty()) {
+                    List<String> allGroupImages = groupVOs.stream()
+                            .filter(g -> g.getImages() != null)
+                            .flatMap(g -> g.getImages().stream())
+                            .collect(Collectors.toList());
+                    if (!allGroupImages.isEmpty()) {
+                        post.setImages(String.join(",", allGroupImages));
+                    }
                 }
             } catch (Exception e) {
                 post.setImageGroups(null);
             }
+        }
+        if ((post.getImages() == null || post.getImages().isEmpty())
+                && dto.getImages() != null && !dto.getImages().isEmpty()) {
+            post.setImages(String.join(",", dto.getImages()));
         }
         if (dto.getAccessoryCards() != null && !dto.getAccessoryCards().isEmpty()) {
             try {

@@ -47,7 +47,10 @@
                   <div class="step-dot" :style="{ background: getGroupColor(group.key) }">
                     {{ gIdx + 1 }}
                   </div>
-                  <div v-if="gIdx < sortedImageGroups.length - 1" class="step-line"></div>
+                  <div
+                    v-if="gIdx < sortedImageGroups.length - 1 || ungroupedImages.length > 0"
+                    class="step-line"
+                  ></div>
                 </div>
                 <div class="group-main-card">
                   <div class="group-title-bar" :style="{ borderLeftColor: getGroupColor(group.key) }">
@@ -68,6 +71,35 @@
                       @click="openImagePreview(gIdx, iIdx)"
                     >
                       <img :src="img" :alt="`${group.label}-${iIdx + 1}`" class="grouped-img" />
+                      <span class="image-number">{{ iIdx + 1 }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="ungroupedImages.length > 0" class="grouped-image-block ungrouped">
+                <div class="group-step-indicator">
+                  <div class="step-dot ungrouped-dot">
+                    <el-icon><Collection /></el-icon>
+                  </div>
+                </div>
+                <div class="group-main-card">
+                  <div class="group-title-bar ungrouped-title">
+                    <span class="group-title-icon">🖼️</span>
+                    <div class="group-title-text">
+                      <h3 class="group-name">其他图片</h3>
+                      <span class="group-desc">未编排到节奏中的图片</span>
+                    </div>
+                    <span class="group-counter">{{ ungroupedImages.length }} 张图</span>
+                  </div>
+                  <div class="group-image-grid">
+                    <div
+                      v-for="(img, iIdx) in ungroupedImages"
+                      :key="'ugi-' + iIdx"
+                      class="grouped-image-item"
+                      @click="openUngroupedPreview(iIdx)"
+                    >
+                      <img :src="img" :alt="`其他-${iIdx + 1}`" class="grouped-img" />
                       <span class="image-number">{{ iIdx + 1 }}</span>
                     </div>
                   </div>
@@ -216,7 +248,7 @@ import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
-import { Reading, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { Reading, ArrowLeft, ArrowRight, Collection } from '@element-plus/icons-vue'
 import AccessoryCard from '@/components/AccessoryCard.vue'
 
 const GROUP_META = {
@@ -261,20 +293,41 @@ const sortedImageGroups = computed(() => {
   return result
 })
 
+const groupedImageSet = computed(() => {
+  const set = new Set()
+  sortedImageGroups.value.forEach(g => {
+    ;(g.images || []).forEach(url => set.add(url))
+  })
+  return set
+})
+
+const ungroupedImages = computed(() => {
+  if (!hasImageGroups.value) return []
+  const all = post.value?.images || []
+  return all.filter(url => !groupedImageSet.value.has(url))
+})
+
 const flatPreviewList = computed(() => {
   if (hasImageGroups.value) {
     const result = []
     sortedImageGroups.value.forEach(g => {
-      (g.images || []).forEach(img => result.push({ url: img, key: g.key }))
+      ;(g.images || []).forEach(img => result.push({ url: img, key: g.key, groupLabel: g.label }))
     })
+    ungroupedImages.value.forEach(img => result.push({ url: img, key: null, groupLabel: null }))
     return result
   }
-  return (post.value?.images || []).map(url => ({ url, key: null }))
+  return (post.value?.images || []).map(url => ({ url, key: null, groupLabel: null }))
 })
 
 const currentPreviewGroup = computed(() => {
   const item = flatPreviewList.value[currentPreviewIdx.value]
-  if (!item || !item.key) return null
+  if (!item) return null
+  if (!item.key) {
+    if (hasImageGroups.value) {
+      return { label: '其他图片', icon: '🖼️', isUngrouped: true }
+    }
+    return null
+  }
   const group = sortedImageGroups.value.find(g => g.key === item.key)
   if (!group) return null
   const meta = GROUP_META[group.key] || { icon: '🖼️' }
@@ -317,6 +370,17 @@ const openFlatPreview = (idx) => {
   imagePreviewVisible.value = true
 }
 
+const openUngroupedPreview = (idx) => {
+  let flatIdx = 0
+  sortedImageGroups.value.forEach(g => { flatIdx += (g.images || []).length })
+  flatIdx += idx
+  currentPreviewState.groupKey = null
+  currentPreviewState.indexInGroup = idx
+  currentPreviewIdx.value = flatIdx
+  previewScale.value = 1
+  imagePreviewVisible.value = true
+}
+
 const prevPreviewImage = () => {
   if (flatPreviewList.value.length === 0) return
   currentPreviewIdx.value = (currentPreviewIdx.value - 1 + flatPreviewList.value.length) % flatPreviewList.value.length
@@ -335,7 +399,15 @@ const updatePreviewState = () => {
   const item = flatPreviewList.value[currentPreviewIdx.value]
   if (!item || !item.key) {
     currentPreviewState.groupKey = null
-    currentPreviewState.indexInGroup = currentPreviewIdx.value
+    if (hasImageGroups.value) {
+      const groupedCount = sortedImageGroups.value.reduce(
+        (total, group) => total + (group.images?.length || 0),
+        0
+      )
+      currentPreviewState.indexInGroup = Math.max(0, currentPreviewIdx.value - groupedCount)
+    } else {
+      currentPreviewState.indexInGroup = currentPreviewIdx.value
+    }
     return
   }
   currentPreviewState.groupKey = item.key
@@ -577,6 +649,26 @@ const replyTo = (comment) => {
       margin-top: 6px;
       min-height: 40px;
       border-radius: 2px;
+    }
+
+    .step-dot.ungrouped-dot {
+      background: linear-gradient(135deg, #909399 0%, #606266 100%);
+      font-size: 18px;
+    }
+  }
+
+  .grouped-image-block.ungrouped {
+    .group-title-bar.ungrouped-title {
+      border-left-color: #909399;
+
+      .group-name {
+        color: #606266 !important;
+      }
+
+      .group-counter {
+        background: linear-gradient(135deg, #f4f4f5 0%, #e9e9eb 100%);
+        color: #606266;
+      }
     }
   }
 

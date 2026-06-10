@@ -586,7 +586,7 @@ const emitChange = () => {
   emit('update:modelValue', successImages)
   emit('change', {
     images: successImages,
-    all: imageList.value,
+    all: imageList.value.slice(),
     successCount: successCount.value,
     failedCount: failedCount.value,
     uploadingCount: uploadingCount.value,
