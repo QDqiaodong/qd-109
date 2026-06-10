@@ -33,12 +33,16 @@
               />
             </el-form-item>
 
+            <el-form-item label="故障现象" v-if="form.type === 2">
+              <FaultTemplate v-model="faultTemplate" @apply="applyTemplateContent" />
+            </el-form-item>
+
             <el-form-item label="帖子内容">
               <el-input
                 v-model="form.content"
                 type="textarea"
                 :rows="10"
-                placeholder="请输入详细内容，分享你的使用体验或遇到的问题..."
+                :placeholder="form.type === 2 ? '请输入详细的问题描述，也可以使用上方故障现象模板快速填写...' : '请输入详细内容，分享你的使用体验或遇到的问题...'"
                 maxlength="5000"
                 show-word-limit
               />
@@ -87,6 +91,7 @@ import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ImageUpload from '@/components/ImageUpload.vue'
 import AccessoryCardEditor from '@/components/AccessoryCardEditor.vue'
+import FaultTemplate from '@/components/FaultTemplate.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -94,6 +99,7 @@ const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
 const accessoryCards = ref([])
+const faultTemplate = ref({})
 const submitting = ref(false)
 
 const form = reactive({
@@ -105,6 +111,15 @@ const form = reactive({
 
 const handleImageChange = (info) => {
   imageInfo.value = info
+}
+
+const applyTemplateContent = (content) => {
+  if (form.content.trim()) {
+    form.content = form.content + '\n\n' + content
+  } else {
+    form.content = content
+  }
+  ElMessage.success('已应用到帖子内容')
 }
 
 onMounted(() => {
@@ -159,6 +174,33 @@ const submit = async () => {
   await doSubmit()
 }
 
+const hasFaultTemplateContent = () => {
+  const t = faultTemplate.value
+  return t && (t.deviceModel || t.accessoryModel || t.connectionType || t.symptoms || t.triedActions)
+}
+
+const generateFaultTemplateContent = () => {
+  const t = faultTemplate.value
+  if (!t) return ''
+  const lines = []
+  if (t.deviceModel) lines.push(`📱 **设备型号**：${t.deviceModel}`)
+  if (t.accessoryModel) lines.push(`🔧 **配件型号**：${t.accessoryModel}`)
+  if (t.connectionType) lines.push(`🔌 **连接方式**：${t.connectionType}`)
+  if (t.symptoms) {
+    lines.push('')
+    lines.push('❓ **出现症状**')
+    lines.push('')
+    lines.push(t.symptoms)
+  }
+  if (t.triedActions) {
+    lines.push('')
+    lines.push('🔄 **已尝试动作**')
+    lines.push('')
+    lines.push(t.triedActions)
+  }
+  return lines.join('\n')
+}
+
 const doSubmit = async () => {
   if (!userStore.checkLogin()) {
     ElMessageBox.alert('登录状态已失效，请重新登录后再发布', '提示', {
@@ -170,8 +212,21 @@ const doSubmit = async () => {
 
   submitting.value = true
   try {
+    let finalContent = form.content
+    if (form.type === 2 && hasFaultTemplateContent()) {
+      const templateContent = generateFaultTemplateContent()
+      if (templateContent) {
+        if (finalContent.trim()) {
+          finalContent = templateContent + '\n\n---\n\n' + finalContent
+        } else {
+          finalContent = templateContent
+        }
+      }
+    }
+
     await createPost({
       ...form,
+      content: finalContent,
       images: images.value,
       accessoryCards: accessoryCards.value
     })
