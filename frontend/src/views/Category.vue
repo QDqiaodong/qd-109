@@ -50,7 +50,7 @@
               v-for="cat in categories"
               :key="cat.id"
               :to="`/category/${cat.id}`"
-              :class="['category-nav-item', { active: cat.id == categoryId }]"
+              :class="['category-nav-item', { active: cat.id === categoryId }]"
             >
               <span class="cat-icon">{{ cat.icon }}</span>
               <span class="cat-name">{{ cat.name }}</span>
@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getPostList, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
@@ -72,12 +72,13 @@ import PostSkeleton from '@/components/PostSkeleton.vue'
 import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
 
 const route = useRoute()
-const categoryId = computed(() => route.params.id)
+const router = useRouter()
+const categoryId = computed(() => Number(route.params.id))
 const categories = ref([])
 const postType = ref(null)
 
 const currentCategory = computed(() => {
-  return categories.value.find(c => c.id == categoryId.value)
+  return categories.value.find(c => c.id === categoryId.value)
 })
 
 const fetchPosts = (params) => {
@@ -106,7 +107,8 @@ watch(categoryId, () => {
   window.scrollTo({ top: 0, behavior: 'auto' })
 })
 
-onMounted(() => {
+onMounted(async () => {
+  await router.isReady()
   loadCategories()
   infinite.loadMore()
 })

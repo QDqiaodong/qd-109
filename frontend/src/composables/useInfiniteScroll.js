@@ -16,6 +16,8 @@ export function useInfiniteScroll(fetchFn, options = {}) {
   const total = ref(0)
   const initialLoading = ref(false)
 
+  let requestId = 0
+
   const hasMore = () => {
     if (total.value === 0) return true
     return list.value.length < total.value
@@ -23,6 +25,8 @@ export function useInfiniteScroll(fetchFn, options = {}) {
 
   const loadMore = async () => {
     if (loading.value || finished.value) return
+
+    const currentRequestId = ++requestId
 
     const isFirstLoad = pageNum.value === 1 && list.value.length === 0
     if (isFirstLoad) {
@@ -36,6 +40,10 @@ export function useInfiniteScroll(fetchFn, options = {}) {
         pageNum: pageNum.value,
         pageSize
       })
+
+      if (currentRequestId !== requestId) {
+        return
+      }
 
       const records = res.records || []
 
@@ -53,10 +61,15 @@ export function useInfiniteScroll(fetchFn, options = {}) {
         pageNum.value++
       }
     } catch (err) {
+      if (currentRequestId !== requestId) {
+        return
+      }
       error.value = err
     } finally {
-      loading.value = false
-      initialLoading.value = false
+      if (currentRequestId === requestId) {
+        loading.value = false
+        initialLoading.value = false
+      }
     }
   }
 
@@ -66,6 +79,7 @@ export function useInfiniteScroll(fetchFn, options = {}) {
   }
 
   const reset = () => {
+    requestId++
     list.value = []
     pageNum.value = 1
     total.value = 0
