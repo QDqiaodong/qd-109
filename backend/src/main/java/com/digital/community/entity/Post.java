@@ -18,6 +18,7 @@ public class Post {
     private String images;
     private String imageGroups;
     private String accessoryCards;
+    private String faultInfo;
     private Integer type;
     private Integer viewCount;
     private Integer likeCount;

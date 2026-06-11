@@ -6,7 +6,9 @@ import com.digital.community.context.UserContext;
 import com.digital.community.dto.AccessoryCardDTO;
 import com.digital.community.dto.ImageGroupDTO;
 import com.digital.community.dto.PostDTO;
+import com.digital.community.entity.Category;
 import com.digital.community.entity.Post;
+import com.digital.community.mapper.CategoryMapper;
 import com.digital.community.mapper.PostMapper;
 import com.digital.community.vo.AccessoryCardVO;
 import com.digital.community.vo.ImageGroupVO;
@@ -21,6 +23,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -33,8 +36,21 @@ public class PostService {
     private static final long CACHE_EXPIRE = 30;
     private static final long VIEW_COUNT_EXPIRE_MINUTES = 30;
 
+    private static final Map<String, String> FIELD_LABELS = Map.of(
+            "deviceModel", "设备型号",
+            "accessoryModel", "配件型号",
+            "connectionType", "连接方式",
+            "platform", "使用平台",
+            "environment", "读写环境",
+            "symptoms", "出现症状",
+            "triedActions", "已尝试动作"
+    );
+
     @Resource
     private PostMapper postMapper;
+
+    @Resource
+    private CategoryMapper categoryMapper;
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -139,6 +155,10 @@ public class PostService {
 
     @Transactional(rollbackFor = Exception.class)
     public Long create(Long userId, PostDTO dto) {
+        if (dto.getType() != null && dto.getType() == 2) {
+            validateHelpPostFields(dto);
+        }
+
         Post post = new Post();
         post.setUserId(userId);
         post.setCategoryId(dto.getCategoryId());
@@ -177,6 +197,13 @@ public class PostService {
                 post.setAccessoryCards(null);
             }
         }
+        if (dto.getFaultInfo() != null && !dto.getFaultInfo().isEmpty()) {
+            try {
+                post.setFaultInfo(objectMapper.writeValueAsString(dto.getFaultInfo()));
+            } catch (Exception e) {
+                post.setFaultInfo(null);
+            }
+        }
         post.setType(dto.getType() != null ? dto.getType() : 1);
         post.setViewCount(0);
         post.setLikeCount(0);
@@ -188,6 +215,40 @@ public class PostService {
         redisTemplate.delete(HOT_POSTS_KEY);
 
         return post.getId();
+    }
+
+    private void validateHelpPostFields(PostDTO dto) {
+        if (dto.getCategoryId() == null) {
+            throw new IllegalArgumentException("求助帖请选择所属分类");
+        }
+        Category category = categoryMapper.selectById(dto.getCategoryId());
+        if (category == null) {
+            throw new IllegalArgumentException("所选分类不存在");
+        }
+        String requiredFieldsJson = category.getRequiredFields();
+        if (requiredFieldsJson == null || requiredFieldsJson.isBlank()) {
+            return;
+        }
+        List<String> requiredFields;
+        try {
+            requiredFields = objectMapper.readValue(requiredFieldsJson, List.class);
+        } catch (Exception e) {
+            return;
+        }
+        Map<String, String> faultInfo = dto.getFaultInfo();
+        List<String> missingFields = requiredFields.stream()
+                .filter(field -> {
+                    if (faultInfo == null) return true;
+                    String value = faultInfo.get(field);
+                    return value == null || value.isBlank();
+                })
+                .toList();
+        if (!missingFields.isEmpty()) {
+            String labels = missingFields.stream()
+                    .map(f -> FIELD_LABELS.getOrDefault(f, f))
+                    .collect(Collectors.joining("、"));
+            throw new IllegalArgumentException("「" + category.getName() + "」分类的求助帖需补充：" + labels);
+        }
     }
 
     private AccessoryCardVO convertToVO(AccessoryCardDTO dto) {

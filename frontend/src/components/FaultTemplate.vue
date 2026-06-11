@@ -10,7 +10,7 @@
 
     <div class="template-body" v-if="mode === 'form'">
       <el-form :model="formData" label-width="100px" size="default">
-        <el-form-item label="设备型号">
+        <el-form-item label="设备型号" :required="isRequired('deviceModel')">
           <el-input
             v-model="formData.deviceModel"
             placeholder="如：iPhone 15 Pro、MacBook Pro 14寸 M3"
@@ -19,7 +19,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="配件型号">
+        <el-form-item label="配件型号" :required="isRequired('accessoryModel')">
           <el-input
             v-model="formData.accessoryModel"
             placeholder="如：AirPods Pro 2、罗技MX Master 3S"
@@ -28,7 +28,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="连接方式">
+        <el-form-item label="连接方式" :required="isRequired('connectionType')" v-if="isFieldVisible('connectionType')">
           <el-select
             v-model="formData.connectionType"
             placeholder="请选择连接方式"
@@ -41,7 +41,33 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="出现症状">
+        <el-form-item label="使用平台" :required="isRequired('platform')" v-if="isFieldVisible('platform')">
+          <el-select
+            v-model="formData.platform"
+            placeholder="请选择使用平台"
+            style="width: 100%"
+            clearable
+            filterable
+            allow-create
+          >
+            <el-option v-for="item in platformOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="读写环境" :required="isRequired('environment')" v-if="isFieldVisible('environment')">
+          <el-select
+            v-model="formData.environment"
+            placeholder="请选择读写环境"
+            style="width: 100%"
+            clearable
+            filterable
+            allow-create
+          >
+            <el-option v-for="item in environmentOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="出现症状" :required="isRequired('symptoms')">
           <el-input
             v-model="formData.symptoms"
             type="textarea"
@@ -52,7 +78,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="已尝试动作">
+        <el-form-item label="已尝试动作" :required="isRequired('triedActions')">
           <el-input
             v-model="formData.triedActions"
             type="textarea"
@@ -64,7 +90,11 @@
         </el-form-item>
       </el-form>
 
-      <div class="template-tip">
+      <div class="template-tip" v-if="requiredFields.length > 0">
+        <el-icon><InfoFilled /></el-icon>
+        <span>当前分类要求必填：{{ requiredFieldLabels }}，填写越完整，他人越容易帮你定位问题</span>
+      </div>
+      <div class="template-tip" v-else>
         <el-icon><InfoFilled /></el-icon>
         <span>填写完成后，系统会自动整理成清晰的提问格式，方便他人快速理解问题背景</span>
       </div>
@@ -86,10 +116,33 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
 
+const FIELD_LABEL_MAP = {
+  deviceModel: '设备型号',
+  accessoryModel: '配件型号',
+  connectionType: '连接方式',
+  platform: '使用平台',
+  environment: '读写环境',
+  symptoms: '出现症状',
+  triedActions: '已尝试动作'
+}
+
+const CATEGORY_SPECIFIC_FIELDS = {
+  platform: [8],
+  environment: [8]
+}
+
 const props = defineProps({
   modelValue: {
     type: Object,
     default: () => ({})
+  },
+  requiredFields: {
+    type: Array,
+    default: () => []
+  },
+  categoryId: {
+    type: Number,
+    default: null
   }
 })
 
@@ -102,25 +155,57 @@ const connectionOptions = [
   'HDMI', '3.5mm音频', '磁吸', 'AirDrop', '其他'
 ]
 
+const platformOptions = [
+  'Windows 11', 'Windows 10', 'macOS Sonoma', 'macOS Ventura',
+  'iOS 17', 'iOS 16', 'Android 14', 'Android 13',
+  'Linux', 'iPadOS', '其他'
+]
+
+const environmentOptions = [
+  'USB 3.0', 'USB 3.1', 'USB 3.2', 'USB-C', 'Thunderbolt 3',
+  'Thunderbolt 4', 'PCIe 3.0', 'PCIe 4.0', 'PCIe 5.0',
+  'NVMe', 'SATA III', 'SD卡槽', '其他'
+]
+
 const createEmptyForm = () => ({
   deviceModel: '',
   accessoryModel: '',
   connectionType: '',
+  platform: '',
+  environment: '',
   symptoms: '',
   triedActions: ''
 })
 
 const formData = reactive(createEmptyForm())
 
+const isRequired = (field) => {
+  return props.requiredFields.includes(field)
+}
+
+const isFieldVisible = (field) => {
+  const categoryIds = CATEGORY_SPECIFIC_FIELDS[field]
+  if (!categoryIds) return true
+  if (props.categoryId == null) return true
+  return categoryIds.includes(props.categoryId) || props.requiredFields.includes(field)
+}
+
+const requiredFieldLabels = computed(() => {
+  return props.requiredFields
+    .map(f => FIELD_LABEL_MAP[f] || f)
+    .join('、')
+})
+
 const hasContent = computed(() => {
-  return formData.deviceModel || formData.accessoryModel || 
-         formData.connectionType || formData.symptoms || 
+  return formData.deviceModel || formData.accessoryModel ||
+         formData.connectionType || formData.platform ||
+         formData.environment || formData.symptoms ||
          formData.triedActions
 })
 
 const generatedContent = computed(() => {
   const lines = []
-  
+
   if (formData.deviceModel) {
     lines.push(`📱 **设备型号**：${formData.deviceModel}`)
   }
@@ -129,6 +214,12 @@ const generatedContent = computed(() => {
   }
   if (formData.connectionType) {
     lines.push(`🔌 **连接方式**：${formData.connectionType}`)
+  }
+  if (formData.platform) {
+    lines.push(`💻 **使用平台**：${formData.platform}`)
+  }
+  if (formData.environment) {
+    lines.push(`💾 **读写环境**：${formData.environment}`)
   }
   if (formData.symptoms) {
     lines.push('')
@@ -142,15 +233,15 @@ const generatedContent = computed(() => {
     lines.push('')
     lines.push(formData.triedActions)
   }
-  
+
   return lines.join('\n')
 })
 
 const generatedContentHtml = computed(() => {
   if (!hasContent.value) return ''
-  
+
   const htmlLines = []
-  
+
   if (formData.deviceModel) {
     htmlLines.push(`<p><strong>📱 设备型号：</strong>${escapeHtml(formData.deviceModel)}</p>`)
   }
@@ -160,6 +251,12 @@ const generatedContentHtml = computed(() => {
   if (formData.connectionType) {
     htmlLines.push(`<p><strong>🔌 连接方式：</strong>${escapeHtml(formData.connectionType)}</p>`)
   }
+  if (formData.platform) {
+    htmlLines.push(`<p><strong>💻 使用平台：</strong>${escapeHtml(formData.platform)}</p>`)
+  }
+  if (formData.environment) {
+    htmlLines.push(`<p><strong>💾 读写环境：</strong>${escapeHtml(formData.environment)}</p>`)
+  }
   if (formData.symptoms) {
     htmlLines.push(`<p style="margin-top: 12px;"><strong>❓ 出现症状</strong></p>`)
     htmlLines.push(`<p style="white-space: pre-wrap; color: #333;">${escapeHtml(formData.symptoms)}</p>`)
@@ -168,7 +265,7 @@ const generatedContentHtml = computed(() => {
     htmlLines.push(`<p style="margin-top: 12px;"><strong>🔄 已尝试动作</strong></p>`)
     htmlLines.push(`<p style="white-space: pre-wrap; color: #333;">${escapeHtml(formData.triedActions)}</p>`)
   }
-  
+
   return htmlLines.join('')
 })
 
@@ -180,6 +277,17 @@ const escapeHtml = (text) => {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
+}
+
+const validate = () => {
+  const missing = []
+  for (const field of props.requiredFields) {
+    const value = formData[field]
+    if (!value || !value.trim()) {
+      missing.push(FIELD_LABEL_MAP[field] || field)
+    }
+  }
+  return missing
 }
 
 const insertToContent = () => {
@@ -205,6 +313,8 @@ watch(
   },
   { deep: true }
 )
+
+defineExpose({ validate, formData })
 </script>
 
 <style lang="scss" scoped>

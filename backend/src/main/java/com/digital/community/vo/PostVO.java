@@ -3,6 +3,7 @@ package com.digital.community.vo;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class PostVO {
@@ -17,6 +18,7 @@ public class PostVO {
     private List<String> images;
     private List<ImageGroupVO> imageGroups;
     private List<AccessoryCardVO> accessoryCards;
+    private Map<String, String> faultInfo;
     private Integer type;
     private Integer viewCount;
     private Integer likeCount;

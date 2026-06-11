@@ -33,6 +33,16 @@
               />
             </el-form-item>
 
+            <div v-if="form.type === 2" class="fault-template-wrap">
+              <FaultTemplate
+                ref="faultTemplateRef"
+                v-model="faultData"
+                :required-fields="currentRequiredFields"
+                :category-id="form.categoryId"
+                @apply="applyFaultContent"
+              />
+            </div>
+
             <el-form-item label="帖子内容">
               <el-input
                 v-model="form.content"
@@ -44,7 +54,7 @@
               />
             </el-form-item>
 
-            <el-form-item label="上传图片">
+            <el-form-item label="上传图片" v-if="form.type === 1">
               <ImageUpload v-model="images" :limit="9" @change="handleImageChange" />
             </el-form-item>
 
@@ -59,6 +69,20 @@
       </div>
 
       <aside class="sidebar">
+        <div class="card" v-if="form.type === 2 && currentRequiredFields.length > 0">
+          <h3 class="sidebar-title">⚠️ 必填信息提示</h3>
+          <div class="required-hint">
+            <p class="hint-intro">当前分类（{{ currentCategoryName }}）的求助帖需填写以下信息：</p>
+            <ul class="required-list">
+              <li v-for="field in currentRequiredFields" :key="field">
+                <span class="field-dot"></span>
+                {{ fieldLabelMap[field] || field }}
+              </li>
+            </ul>
+            <p class="hint-note">信息越完整，他人越容易帮你定位和解决问题</p>
+          </div>
+        </div>
+
         <div class="card">
           <h3 class="sidebar-title">📋 发布须知</h3>
           <ul class="tips-list">
@@ -76,12 +100,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCategories, createPost } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ImageUpload from '@/components/ImageUpload.vue'
+import FaultTemplate from '@/components/FaultTemplate.vue'
+
+const fieldLabelMap = {
+  deviceModel: '设备型号',
+  accessoryModel: '配件型号',
+  connectionType: '连接方式',
+  platform: '使用平台',
+  environment: '读写环境',
+  symptoms: '出现症状',
+  triedActions: '已尝试动作'
+}
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -89,6 +124,8 @@ const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
 const submitting = ref(false)
+const faultTemplateRef = ref(null)
+const faultData = ref({})
 
 const form = reactive({
   type: 1,
@@ -97,8 +134,34 @@ const form = reactive({
   content: ''
 })
 
+const currentRequiredFields = computed(() => {
+  if (form.type !== 2 || !form.categoryId) return []
+  const cat = categories.value.find(c => c.id === form.categoryId)
+  if (!cat || !cat.requiredFields) return []
+  try {
+    return typeof cat.requiredFields === 'string'
+      ? JSON.parse(cat.requiredFields)
+      : cat.requiredFields
+  } catch {
+    return []
+  }
+})
+
+const currentCategoryName = computed(() => {
+  if (!form.categoryId) return ''
+  const cat = categories.value.find(c => c.id === form.categoryId)
+  return cat ? cat.name : ''
+})
+
 const handleImageChange = (info) => {
   imageInfo.value = info
+}
+
+const applyFaultContent = (content) => {
+  if (form.content && !form.content.trim().endsWith('\n')) {
+    form.content = form.content + '\n\n'
+  }
+  form.content = (form.content || '') + content
 }
 
 onMounted(() => {
@@ -139,6 +202,14 @@ const submit = async () => {
     return
   }
 
+  if (form.type === 2 && faultTemplateRef.value) {
+    const missing = faultTemplateRef.value.validate()
+    if (missing.length > 0) {
+      ElMessage.warning(`请补充必填信息：${missing.join('、')}`)
+      return
+    }
+  }
+
   const { failedCount, uploadingCount } = getRealtimeImageCounts()
 
   if (failedCount > 0) {
@@ -175,10 +246,14 @@ const doSubmit = async () => {
 
   submitting.value = true
   try {
-    await createPost({
+    const payload = {
       ...form,
       images: images.value
-    })
+    }
+    if (form.type === 2 && faultData.value) {
+      payload.faultInfo = { ...faultData.value }
+    }
+    await createPost(payload)
     ElMessage.success('发布成功')
     router.push('/')
   } catch (e) {
@@ -213,10 +288,54 @@ const doSubmit = async () => {
     border-bottom: 1px solid #f0f0f0;
   }
 
+  .fault-template-wrap {
+    margin-bottom: 18px;
+    margin-left: 0;
+  }
+
   .sidebar-title {
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 16px;
+  }
+
+  .required-hint {
+    .hint-intro {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .required-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px 0;
+
+      li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+
+        .field-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #f56c6c;
+          flex-shrink: 0;
+        }
+      }
+    }
+
+    .hint-note {
+      font-size: 12px;
+      color: #999;
+      line-height: 1.5;
+    }
   }
 
   .tips-list {

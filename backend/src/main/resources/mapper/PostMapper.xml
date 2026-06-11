@@ -14,6 +14,7 @@
         <result column="images" property="images" typeHandler="com.digital.community.handler.StringListTypeHandler"/>
         <result column="image_groups" property="imageGroups" typeHandler="com.digital.community.handler.ImageGroupListTypeHandler"/>
         <result column="accessory_cards" property="accessoryCards" typeHandler="com.digital.community.handler.AccessoryCardListTypeHandler"/>
+        <result column="fault_info" property="faultInfo" typeHandler="com.digital.community.handler.FaultInfoTypeHandler"/>
         <result column="type" property="type"/>
         <result column="view_count" property="viewCount"/>
         <result column="like_count" property="likeCount"/>

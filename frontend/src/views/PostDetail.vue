@@ -28,6 +28,43 @@
             />
           </div>
 
+          <div class="fault-info-card" v-if="post?.type === 2 && post?.faultInfo && hasFaultInfo">
+            <div class="fault-card-header">
+              <span class="fault-card-icon">📋</span>
+              <span class="fault-card-title">故障信息</span>
+            </div>
+            <div class="fault-card-body">
+              <div class="fault-row" v-if="post.faultInfo.deviceModel">
+                <span class="fault-label">📱 设备型号</span>
+                <span class="fault-value">{{ post.faultInfo.deviceModel }}</span>
+              </div>
+              <div class="fault-row" v-if="post.faultInfo.accessoryModel">
+                <span class="fault-label">🔧 配件型号</span>
+                <span class="fault-value">{{ post.faultInfo.accessoryModel }}</span>
+              </div>
+              <div class="fault-row" v-if="post.faultInfo.connectionType">
+                <span class="fault-label">🔌 连接方式</span>
+                <span class="fault-value">{{ post.faultInfo.connectionType }}</span>
+              </div>
+              <div class="fault-row" v-if="post.faultInfo.platform">
+                <span class="fault-label">💻 使用平台</span>
+                <span class="fault-value">{{ post.faultInfo.platform }}</span>
+              </div>
+              <div class="fault-row" v-if="post.faultInfo.environment">
+                <span class="fault-label">💾 读写环境</span>
+                <span class="fault-value">{{ post.faultInfo.environment }}</span>
+              </div>
+              <div class="fault-row fault-row-block" v-if="post.faultInfo.symptoms">
+                <span class="fault-label">❓ 出现症状</span>
+                <span class="fault-value fault-value-block">{{ post.faultInfo.symptoms }}</span>
+              </div>
+              <div class="fault-row fault-row-block" v-if="post.faultInfo.triedActions">
+                <span class="fault-label">🔄 已尝试动作</span>
+                <span class="fault-value fault-value-block">{{ post.faultInfo.triedActions }}</span>
+              </div>
+            </div>
+          </div>
+
           <div class="post-content">
             <p v-for="(para, idx) in contentParagraphs" :key="idx">{{ para }}</p>
           </div>
@@ -440,6 +477,13 @@ const contentParagraphs = computed(() => {
   return post.value.content.split('\n').filter(p => p.trim())
 })
 
+const hasFaultInfo = computed(() => {
+  if (!post.value?.faultInfo) return false
+  const fi = post.value.faultInfo
+  return fi.deviceModel || fi.accessoryModel || fi.connectionType ||
+         fi.platform || fi.environment || fi.symptoms || fi.triedActions
+})
+
 onMounted(() => {
   loadPost()
   loadComments()
@@ -560,6 +604,75 @@ const cancelReply = () => {
       background: #e6f7ff;
       padding: 4px 12px;
       border-radius: 4px;
+    }
+  }
+
+  .fault-info-card {
+    margin-bottom: 20px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+    overflow: hidden;
+
+    .fault-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #f56c6c 0%, #e6474b 100%);
+      color: white;
+
+      .fault-card-icon {
+        font-size: 16px;
+      }
+
+      .fault-card-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+    }
+
+    .fault-card-body {
+      padding: 16px 20px;
+    }
+
+    .fault-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 8px 0;
+      border-bottom: 1px dashed #fde2e2;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .fault-label {
+        flex-shrink: 0;
+        width: 100px;
+        font-size: 13px;
+        color: #999;
+        font-weight: 500;
+        padding-top: 2px;
+      }
+
+      .fault-value {
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+
+        &.fault-value-block {
+          white-space: pre-wrap;
+          line-height: 1.6;
+          font-weight: 400;
+        }
+      }
+    }
+
+    .fault-row-block {
+      flex-direction: column;
+      gap: 6px;
     }
   }
 
