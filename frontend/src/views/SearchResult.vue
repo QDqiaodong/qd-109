@@ -1,5 +1,5 @@
 <template>
-  <div class="search-page container">
+  <div class="search-page container" :class="{ 'has-compare-bar': !compareStore.isEmpty }">
     <div class="search-header card">
       <h1 class="search-title">
         <span class="search-icon">🔍</span>
@@ -74,10 +74,20 @@
 
                 <div class="result-footer">
                   <span class="category-tag">{{ post.categoryName }}</span>
-                  <div class="post-stats">
-                    <span>👁️ {{ post.viewCount }}</span>
-                    <span>💬 {{ post.commentCount }}</span>
-                    <span>👍 {{ post.likeCount }}</span>
+                  <div class="result-footer-actions">
+                    <button
+                      :class="['compare-btn', { active: isInCompare(post.id) }]"
+                      @click.stop="toggleCompare(post)"
+                      :title="isInCompare(post.id) ? '移出对照' : '加入对照'"
+                    >
+                      <span class="compare-icon">⚖️</span>
+                      <span class="compare-text">{{ isInCompare(post.id) ? '已对照' : '对照' }}</span>
+                    </button>
+                    <div class="post-stats">
+                      <span>👁️ {{ post.viewCount }}</span>
+                      <span>💬 {{ post.commentCount }}</span>
+                      <span>👍 {{ post.likeCount }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -128,10 +138,20 @@
 
                       <div class="result-footer">
                         <span class="category-tag">{{ post.categoryName }}</span>
-                        <div class="post-stats">
-                          <span>👁️ {{ post.viewCount }}</span>
-                          <span>💬 {{ post.commentCount }}</span>
-                          <span>👍 {{ post.likeCount }}</span>
+                        <div class="result-footer-actions">
+                          <button
+                            :class="['compare-btn', { active: isInCompare(post.id) }]"
+                            @click.stop="toggleCompare(post)"
+                            :title="isInCompare(post.id) ? '移出对照' : '加入对照'"
+                          >
+                            <span class="compare-icon">⚖️</span>
+                            <span class="compare-text">{{ isInCompare(post.id) ? '已对照' : '对照' }}</span>
+                          </button>
+                          <div class="post-stats">
+                            <span>👁️ {{ post.viewCount }}</span>
+                            <span>💬 {{ post.commentCount }}</span>
+                            <span>👍 {{ post.likeCount }}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -183,10 +203,20 @@
 
                       <div class="result-footer">
                         <span class="category-tag">{{ post.categoryName }}</span>
-                        <div class="post-stats">
-                          <span>👁️ {{ post.viewCount }}</span>
-                          <span>💬 {{ post.commentCount }}</span>
-                          <span>👍 {{ post.likeCount }}</span>
+                        <div class="result-footer-actions">
+                          <button
+                            :class="['compare-btn', { active: isInCompare(post.id) }]"
+                            @click.stop="toggleCompare(post)"
+                            :title="isInCompare(post.id) ? '移出对照' : '加入对照'"
+                          >
+                            <span class="compare-icon">⚖️</span>
+                            <span class="compare-text">{{ isInCompare(post.id) ? '已对照' : '对照' }}</span>
+                          </button>
+                          <div class="post-stats">
+                            <span>👁️ {{ post.viewCount }}</span>
+                            <span>💬 {{ post.commentCount }}</span>
+                            <span>👍 {{ post.likeCount }}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -239,6 +269,8 @@
         </div>
       </aside>
     </div>
+
+    <CompareBar />
   </div>
 </template>
 
@@ -248,8 +280,31 @@ import { useRoute } from 'vue-router'
 import { searchPosts, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { highlightKeyword, getContentSnippet } from '@/utils/highlight'
+import { useCompareStore } from '@/store/compare'
+import { ElMessage } from 'element-plus'
 import PostSkeleton from '@/components/PostSkeleton.vue'
 import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
+import CompareBar from '@/components/CompareBar.vue'
+
+const compareStore = useCompareStore()
+
+const isInCompare = (postId) => compareStore.isInCompare(postId)
+
+const toggleCompare = (post) => {
+  if (isInCompare(post.id)) {
+    compareStore.removeFromCompare(post.id)
+    ElMessage.info('已移出对照清单')
+  } else {
+    if (compareStore.isMax) {
+      ElMessage.warning(`对照清单最多添加 ${compareStore.MAX_COMPARE_ITEMS} 篇帖子`)
+      return
+    }
+    const added = compareStore.addToCompare(post)
+    if (added) {
+      ElMessage.success('已加入对照清单')
+    }
+  }
+}
 
 const route = useRoute()
 const keyword = computed(() => route.query.q || '')
@@ -750,6 +805,51 @@ const loadCategories = async () => {
         background: #e6f7ff;
         padding: 2px 8px;
         border-radius: 4px;
+      }
+
+      .result-footer-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .compare-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        font-size: 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 16px;
+        background: #fff;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          border-color: #722ed1;
+          color: #722ed1;
+          background: #f9f0ff;
+        }
+
+        &.active {
+          border-color: #722ed1;
+          background: #722ed1;
+          color: #fff;
+
+          &:hover {
+            background: #9254de;
+            border-color: #9254de;
+          }
+        }
+
+        .compare-icon {
+          font-size: 12px;
+        }
+
+        .compare-text {
+          font-weight: 500;
+        }
       }
 
       .post-stats {

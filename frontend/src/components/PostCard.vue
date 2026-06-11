@@ -26,10 +26,20 @@
 
     <div class="post-footer">
       <span class="category-tag">{{ post.categoryName }}</span>
-      <div class="post-stats">
-        <span>👁️ {{ post.viewCount }}</span>
-        <span>💬 {{ post.commentCount }}</span>
-        <span>👍 {{ post.likeCount }}</span>
+      <div class="post-footer-actions">
+        <button
+          :class="['compare-btn', { active: isCompared }]"
+          @click.stop="handleToggleCompare"
+          :title="isCompared ? '移出对照' : '加入对照'"
+        >
+          <span class="compare-icon">⚖️</span>
+          <span class="compare-text">{{ isCompared ? '已对照' : '对照' }}</span>
+        </button>
+        <div class="post-stats">
+          <span>👁️ {{ post.viewCount }}</span>
+          <span>💬 {{ post.commentCount }}</span>
+          <span>👍 {{ post.likeCount }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -37,6 +47,8 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useCompareStore } from '@/store/compare'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   post: {
@@ -44,6 +56,26 @@ const props = defineProps({
     required: true
   }
 })
+
+const compareStore = useCompareStore()
+
+const isCompared = computed(() => compareStore.isInCompare(props.post.id))
+
+const handleToggleCompare = () => {
+  if (isCompared.value) {
+    compareStore.removeFromCompare(props.post.id)
+    ElMessage.info('已移出对照清单')
+  } else {
+    if (compareStore.isMax) {
+      ElMessage.warning(`对照清单最多添加 ${compareStore.MAX_COMPARE_ITEMS} 篇帖子`)
+      return
+    }
+    const added = compareStore.addToCompare(props.post)
+    if (added) {
+      ElMessage.success('已加入对照清单')
+    }
+  }
+}
 
 const postImages = computed(() => {
   if (!props.post.images) return []
@@ -151,6 +183,51 @@ const formatTime = (time) => {
       background: #e6f7ff;
       padding: 2px 8px;
       border-radius: 4px;
+    }
+
+    .post-footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .compare-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 16px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #722ed1;
+        color: #722ed1;
+        background: #f9f0ff;
+      }
+
+      &.active {
+        border-color: #722ed1;
+        background: #722ed1;
+        color: #fff;
+
+        &:hover {
+          background: #9254de;
+          border-color: #9254de;
+        }
+      }
+
+      .compare-icon {
+        font-size: 12px;
+      }
+
+      .compare-text {
+        font-weight: 500;
+      }
     }
 
     .post-stats {

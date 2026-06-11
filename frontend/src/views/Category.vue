@@ -1,5 +1,5 @@
 <template>
-  <div class="category-page container">
+  <div class="category-page container" :class="{ 'has-compare-bar': !compareStore.isEmpty }">
     <div class="page-header card">
       <h1 class="category-title">
         <span class="cat-icon">{{ currentCategory?.icon }}</span>
@@ -59,6 +59,8 @@
         </div>
       </aside>
     </div>
+
+    <CompareBar />
   </div>
 </template>
 
@@ -70,7 +72,10 @@ import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
 import PostSkeleton from '@/components/PostSkeleton.vue'
 import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
+import CompareBar from '@/components/CompareBar.vue'
+import { useCompareStore } from '@/store/compare'
 
+const compareStore = useCompareStore()
 const route = useRoute()
 const router = useRouter()
 const categoryId = computed(() => Number(route.params.id))

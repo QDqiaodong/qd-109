@@ -1,5 +1,5 @@
 <template>
-  <div class="home container">
+  <div class="home container" :class="{ 'has-compare-bar': !compareStore.isEmpty }">
     <div class="home-layout">
       <div class="main-content">
         <div class="section-tabs">
@@ -70,6 +70,8 @@
         </div>
       </aside>
     </div>
+
+    <CompareBar />
   </div>
 </template>
 
@@ -80,7 +82,10 @@ import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
 import PostSkeleton from '@/components/PostSkeleton.vue'
 import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
+import CompareBar from '@/components/CompareBar.vue'
+import { useCompareStore } from '@/store/compare'
 
+const compareStore = useCompareStore()
 const activeTab = ref('latest')
 const hotPosts = ref([])
 const categories = ref([])

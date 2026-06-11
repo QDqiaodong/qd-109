@@ -25,6 +25,11 @@ const routes = [
     path: '/search',
     name: 'Search',
     component: () => import('@/views/SearchResult.vue')
+  },
+  {
+    path: '/compare',
+    name: 'Compare',
+    component: () => import('@/views/ComparePanel.vue')
   }
 ]
 

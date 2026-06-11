@@ -73,6 +73,10 @@
       </div>
 
       <div class="header-right">
+        <router-link to="/compare" class="btn-compare" :class="{ 'has-items': !compareStore.isEmpty }">
+          <span>⚖️ 对照</span>
+          <span v-if="!compareStore.isEmpty" class="compare-badge">{{ compareStore.count }}</span>
+        </router-link>
         <router-link to="/create" class="btn-create">
           <span>✏️ 发布帖子</span>
         </router-link>
@@ -125,6 +129,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { useCompareStore } from '@/store/compare'
 import { getCategories, getSearchSuggestions } from '@/api'
 import { highlightKeyword } from '@/utils/highlight'
 import { ElMessage, ElIcon } from 'element-plus'
@@ -133,6 +138,7 @@ import { Loading } from '@element-plus/icons-vue'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const compareStore = useCompareStore()
 const showLogin = ref(false)
 const activeTab = ref('login')
 const categories = ref([])
@@ -213,6 +219,7 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   userStore.init()
+  compareStore.init()
   loadCategories()
   document.addEventListener('click', handleClickOutside)
 
@@ -491,7 +498,53 @@ const handleRegister = async () => {
   .header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+
+    .btn-compare {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #666;
+      background: #f5f7fa;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #e6f7ff;
+        color: #1890ff;
+      }
+
+      &.has-items {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+      }
+
+      .compare-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        background: #ff4d4f;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+    }
 
     .btn-create {
       background: linear-gradient(135deg, #1890ff, #096dd9);
