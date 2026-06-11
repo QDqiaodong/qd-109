@@ -33,6 +33,21 @@
               <el-radio-button :label="2">问题求助</el-radio-button>
             </el-radio-group>
           </div>
+          <div class="filter-group">
+            <span class="filter-label">视图：</span>
+            <el-radio-group v-model="viewMode" size="default">
+              <el-radio-button label="list">📋 列表视图</el-radio-button>
+              <el-radio-button label="group">📁 分组视图</el-radio-button>
+            </el-radio-group>
+          </div>
+          <div class="filter-group" v-if="viewMode === 'group'">
+            <span class="filter-label">分组依据：</span>
+            <el-radio-group v-model="groupBy" size="default">
+              <el-radio-button label="category">📂 设备大类</el-radio-button>
+              <el-radio-button label="interface">🔌 接口类型</el-radio-button>
+              <el-radio-button label="brand">🏷️ 品牌</el-radio-button>
+            </el-radio-group>
+          </div>
         </div>
 
         <div class="post-list">
@@ -40,31 +55,145 @@
             <PostSkeleton v-for="i in 5" :key="i" />
           </template>
           <template v-else>
-            <div v-for="post in infinite.list.value" :key="post.id" class="search-result-item card">
-              <div class="result-header">
-                <img :src="post.avatar" alt="" class="avatar" />
-                <div class="result-meta">
-                  <span class="nickname" v-html="highlightText(post.nickname, keyword)"></span>
-                  <span class="post-time">{{ formatTime(post.createTime) }}</span>
+            <template v-if="viewMode === 'list'">
+              <div v-for="post in infinite.list.value" :key="post.id" class="search-result-item card">
+                <div class="result-header">
+                  <img :src="post.avatar" alt="" class="avatar" />
+                  <div class="result-meta">
+                    <span class="nickname" v-html="highlightText(post.nickname, keyword)"></span>
+                    <span class="post-time">{{ formatTime(post.createTime) }}</span>
+                  </div>
+                  <span :class="['tag', post.type === 1 ? 'tag-experience' : 'tag-question']">
+                    {{ post.type === 1 ? '体验分享' : '问题求助' }}
+                  </span>
                 </div>
-                <span :class="['tag', post.type === 1 ? 'tag-experience' : 'tag-question']">
-                  {{ post.type === 1 ? '体验分享' : '问题求助' }}
-                </span>
+
+                <router-link :to="`/post/${post.id}`" class="result-title" v-html="highlightText(post.title, keyword)"></router-link>
+
+                <p class="result-excerpt" v-html="highlightText(getSnippet(post.content, keyword), keyword)"></p>
+
+                <div class="result-footer">
+                  <span class="category-tag">{{ post.categoryName }}</span>
+                  <div class="post-stats">
+                    <span>👁️ {{ post.viewCount }}</span>
+                    <span>💬 {{ post.commentCount }}</span>
+                    <span>👍 {{ post.likeCount }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <template v-else>
+              <div v-for="group in groupedPosts" :key="group.key" class="group-section">
+                <div
+                  class="group-header card"
+                  @click="toggleGroup(group.key)"
+                >
+                  <div class="group-header-left">
+                    <span class="expand-icon" :class="{ expanded: expandedGroups.has(group.key) }">
+                      ▶
+                    </span>
+                    <span class="group-icon">{{ group.icon }}</span>
+                    <span class="group-name">{{ group.name }}</span>
+                    <span class="group-count-badge">{{ group.posts.length }} 条</span>
+                  </div>
+                  <div class="group-header-right">
+                    <span class="group-summary">
+                      {{ expandedGroups.has(group.key) ? '点击收起' : '点击展开查看' }}
+                    </span>
+                  </div>
+                </div>
+
+                <transition name="expand">
+                  <div v-show="expandedGroups.has(group.key)" class="group-content">
+                    <div
+                      v-for="post in group.posts"
+                      :key="post.id"
+                      class="search-result-item card group-item"
+                    >
+                      <div class="result-header">
+                        <img :src="post.avatar" alt="" class="avatar" />
+                        <div class="result-meta">
+                          <span class="nickname" v-html="highlightText(post.nickname, keyword)"></span>
+                          <span class="post-time">{{ formatTime(post.createTime) }}</span>
+                        </div>
+                        <span :class="['tag', post.type === 1 ? 'tag-experience' : 'tag-question']">
+                          {{ post.type === 1 ? '体验分享' : '问题求助' }}
+                        </span>
+                      </div>
+
+                      <router-link :to="`/post/${post.id}`" class="result-title" v-html="highlightText(post.title, keyword)"></router-link>
+
+                      <p class="result-excerpt" v-html="highlightText(getSnippet(post.content, keyword), keyword)"></p>
+
+                      <div class="result-footer">
+                        <span class="category-tag">{{ post.categoryName }}</span>
+                        <div class="post-stats">
+                          <span>👁️ {{ post.viewCount }}</span>
+                          <span>💬 {{ post.commentCount }}</span>
+                          <span>👍 {{ post.likeCount }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </transition>
               </div>
 
-              <router-link :to="`/post/${post.id}`" class="result-title" v-html="highlightText(post.title, keyword)"></router-link>
-
-              <p class="result-excerpt" v-html="highlightText(getSnippet(post.content, keyword), keyword)"></p>
-
-              <div class="result-footer">
-                <span class="category-tag">{{ post.categoryName }}</span>
-                <div class="post-stats">
-                  <span>👁️ {{ post.viewCount }}</span>
-                  <span>💬 {{ post.commentCount }}</span>
-                  <span>👍 {{ post.likeCount }}</span>
+              <div v-if="ungroupedPosts.length > 0" class="group-section">
+                <div
+                  class="group-header card ungrouped"
+                  @click="toggleGroup('__ungrouped__')"
+                >
+                  <div class="group-header-left">
+                    <span class="expand-icon" :class="{ expanded: expandedGroups.has('__ungrouped__') }">
+                      ▶
+                    </span>
+                    <span class="group-icon">📦</span>
+                    <span class="group-name">其他（未分类）</span>
+                    <span class="group-count-badge">{{ ungroupedPosts.length }} 条</span>
+                  </div>
+                  <div class="group-header-right">
+                    <span class="group-summary">
+                      {{ expandedGroups.has('__ungrouped__') ? '点击收起' : '点击展开查看' }}
+                    </span>
+                  </div>
                 </div>
+
+                <transition name="expand">
+                  <div v-show="expandedGroups.has('__ungrouped__')" class="group-content">
+                    <div
+                      v-for="post in ungroupedPosts"
+                      :key="post.id"
+                      class="search-result-item card group-item"
+                    >
+                      <div class="result-header">
+                        <img :src="post.avatar" alt="" class="avatar" />
+                        <div class="result-meta">
+                          <span class="nickname" v-html="highlightText(post.nickname, keyword)"></span>
+                          <span class="post-time">{{ formatTime(post.createTime) }}</span>
+                        </div>
+                        <span :class="['tag', post.type === 1 ? 'tag-experience' : 'tag-question']">
+                          {{ post.type === 1 ? '体验分享' : '问题求助' }}
+                        </span>
+                      </div>
+
+                      <router-link :to="`/post/${post.id}`" class="result-title" v-html="highlightText(post.title, keyword)"></router-link>
+
+                      <p class="result-excerpt" v-html="highlightText(getSnippet(post.content, keyword), keyword)"></p>
+
+                      <div class="result-footer">
+                        <span class="category-tag">{{ post.categoryName }}</span>
+                        <div class="post-stats">
+                          <span>👁️ {{ post.viewCount }}</span>
+                          <span>💬 {{ post.commentCount }}</span>
+                          <span>👍 {{ post.likeCount }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </transition>
               </div>
-            </div>
+            </template>
 
             <el-empty v-if="!infinite.loading.value && infinite.list.value.length === 0" description="没有找到相关内容" />
           </template>
@@ -114,7 +243,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { searchPosts, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -127,6 +256,147 @@ const keyword = computed(() => route.query.q || '')
 const categories = ref([])
 const selectedCategory = ref(null)
 const selectedType = ref(null)
+const viewMode = ref('list')
+const groupBy = ref('category')
+const expandedGroups = reactive(new Set())
+
+const CATEGORY_ICONS = {
+  '手机配件': '📱',
+  '电脑配件': '💻',
+  '影音设备': '🎧',
+  '智能穿戴': '⌚',
+  '摄影器材': '📷',
+  '游戏外设': '🎮',
+  '网络设备': '📶',
+  '存储设备': '💾'
+}
+
+const BRAND_PATTERNS = [
+  { brand: 'Apple', patterns: ['Apple', 'iPhone', 'iPad', 'MacBook', 'iMac', 'AirPods', 'Apple Watch', 'Mac', 'iOS'] },
+  { brand: '华为', patterns: ['华为', 'HUAWEI', 'Mate', 'Pura', 'P系列', 'Nova', '荣耀', 'HONOR'] },
+  { brand: '小米', patterns: ['小米', 'Xiaomi', 'Redmi', '红米', 'POCO'] },
+  { brand: '三星', patterns: ['三星', 'Samsung', 'Galaxy'] },
+  { brand: '索尼', patterns: ['索尼', 'Sony', 'WH-', 'WF-', 'WI-'] },
+  { brand: '樱桃', patterns: ['樱桃', 'Cherry', 'MX'] },
+  { brand: '佳达隆', patterns: ['佳达隆', 'Gateron'] },
+  { brand: '罗技', patterns: ['罗技', 'Logitech', 'G系列'] },
+  { brand: '雷蛇', patterns: ['雷蛇', 'Razer'] },
+  { brand: '绿联', patterns: ['绿联', 'UGREEN'] },
+  { brand: '倍思', patterns: ['倍思', 'Baseus'] },
+  { brand: 'Anker', patterns: ['安克', 'Anker'] },
+  { brand: '贝尔金', patterns: ['贝尔金', 'Belkin'] },
+  { brand: '戴尔', patterns: ['戴尔', 'Dell', 'XPS', 'Latitude'] },
+  { brand: '联想', patterns: ['联想', 'Lenovo', 'ThinkPad', '小新', '拯救者'] },
+  { brand: '惠普', patterns: ['惠普', 'HP', '暗影精灵', '战66'] },
+  { brand: '华硕', patterns: ['华硕', 'ASUS', 'ROG', '天选'] }
+]
+
+const extractBrand = (post) => {
+  const textParts = []
+  if (post.title) textParts.push(post.title)
+  if (post.accessoryCards && post.accessoryCards.length > 0) {
+    post.accessoryCards.forEach(card => {
+      if (card.model) textParts.push(card.model)
+    })
+  }
+  const text = textParts.join(' ')
+  for (const { brand, patterns } of BRAND_PATTERNS) {
+    for (const pattern of patterns) {
+      if (text.includes(pattern)) {
+        return brand
+      }
+    }
+  }
+  return null
+}
+
+const extractInterfaceType = (post) => {
+  if (post.accessoryCards && post.accessoryCards.length > 0) {
+    const types = new Set()
+    post.accessoryCards.forEach(card => {
+      if (card.interfaceType) {
+        const normalized = card.interfaceType
+          .replace(/\s*\/\s*/g, '/')
+          .split('/')
+          .map(t => t.trim())
+          .filter(t => t)
+        normalized.forEach(t => types.add(t))
+      }
+    })
+    if (types.size > 0) {
+      return Array.from(types).sort()
+    }
+  }
+  const text = (post.title || '') + ' ' + (post.content || '')
+  if (/Type[-\s]?C/i.test(text)) return ['Type-C']
+  if (/Lightning/i.test(text)) return ['Lightning']
+  if (/USB[-\s]?A/i.test(text) || /USB[\s-]?2\.?0?/i.test(text) || /USB[\s-]?3/i.test(text)) return ['USB-A']
+  if (/蓝牙|Bluetooth/i.test(text)) return ['蓝牙']
+  if (/HDMI/i.test(text)) return ['HDMI']
+  if (/3\.5mm|耳机孔|音频线/i.test(text)) return ['3.5mm音频']
+  if (/Wi-?Fi|无线/i.test(text)) return ['Wi-Fi']
+  if (/雷电|Thunderbolt/i.test(text)) return ['雷电']
+  return null
+}
+
+const toggleGroup = (key) => {
+  if (expandedGroups.has(key)) {
+    expandedGroups.delete(key)
+  } else {
+    expandedGroups.add(key)
+  }
+}
+
+const groupedPosts = computed(() => {
+  const list = infinite.list.value
+  if (!list || list.length === 0) return []
+
+  const groupMap = new Map()
+  const ungrouped = []
+
+  list.forEach(post => {
+    let keys = []
+    if (groupBy.value === 'category') {
+      if (post.categoryName) {
+        keys = [{ key: post.categoryName, name: post.categoryName, icon: CATEGORY_ICONS[post.categoryName] || '📦' }]
+      }
+    } else if (groupBy.value === 'interface') {
+      const types = extractInterfaceType(post)
+      if (types && types.length > 0) {
+        keys = types.map(t => ({ key: t, name: t, icon: '🔌' }))
+      }
+    } else if (groupBy.value === 'brand') {
+      const brand = extractBrand(post)
+      if (brand) {
+        keys = [{ key: brand, name: brand, icon: '🏷️' }]
+      }
+    }
+
+    if (keys.length === 0) {
+      ungrouped.push(post)
+    } else {
+      keys.forEach(({ key, name, icon }) => {
+        if (!groupMap.has(key)) {
+          groupMap.set(key, { key, name, icon, posts: [] })
+        }
+        if (!groupMap.get(key).posts.find(p => p.id === post.id)) {
+          groupMap.get(key).posts.push(post)
+        }
+      })
+    }
+  })
+
+  ungroupedPosts.value = ungrouped
+
+  return Array.from(groupMap.values()).sort((a, b) => {
+    if (a.posts.length !== b.posts.length) {
+      return b.posts.length - a.posts.length
+    }
+    return a.name.localeCompare(b.name, 'zh-CN')
+  })
+})
+
+const ungroupedPosts = ref([])
 
 const highlightText = (text, kw) => {
   return highlightKeyword(text, kw)
@@ -272,6 +542,111 @@ const loadCategories = async () => {
 
   .post-list {
     margin-bottom: 20px;
+  }
+
+  .group-section {
+    margin-bottom: 12px;
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%);
+      border: 1px solid #e8ecff;
+
+      &:hover {
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+        border-color: #c5cfff;
+      }
+
+      &.ungrouped {
+        background: linear-gradient(135deg, #fffbe6 0%, #fff7e6 100%);
+        border-color: #ffe58f;
+
+        &:hover {
+          box-shadow: 0 4px 16px rgba(250, 173, 20, 0.15);
+          border-color: #ffd666;
+        }
+      }
+
+      .group-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .expand-icon {
+          display: inline-block;
+          font-size: 12px;
+          color: #1890ff;
+          transition: transform 0.25s ease;
+
+          &.expanded {
+            transform: rotate(90deg);
+          }
+        }
+
+        .group-icon {
+          font-size: 22px;
+        }
+
+        .group-name {
+          font-size: 16px;
+          font-weight: 600;
+          color: #1a1a1a;
+        }
+
+        .group-count-badge {
+          display: inline-block;
+          padding: 2px 10px;
+          font-size: 12px;
+          font-weight: 500;
+          color: #1890ff;
+          background: #e6f7ff;
+          border-radius: 10px;
+        }
+      }
+
+      .group-header-right {
+        .group-summary {
+          font-size: 13px;
+          color: #999;
+        }
+      }
+    }
+
+    .group-content {
+      padding-top: 12px;
+    }
+
+    .group-item {
+      margin-bottom: 12px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .expand-enter-active,
+  .expand-leave-active {
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .expand-enter-from,
+  .expand-leave-to {
+    opacity: 0;
+    max-height: 0;
+  }
+
+  .expand-enter-to,
+  .expand-leave-from {
+    opacity: 1;
+    max-height: 5000px;
   }
 
   .search-result-item {
