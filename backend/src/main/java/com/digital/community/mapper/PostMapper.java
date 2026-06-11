@@ -13,4 +13,10 @@ public interface PostMapper extends BaseMapper<Post> {
     Page<PostVO> selectPostPage(Page<PostVO> page, @Param("categoryId") Long categoryId, @Param("type") Integer type, @Param("keyword") String keyword);
     PostVO selectPostById(@Param("id") Long id);
     List<PostVO> selectPostSuggestions(@Param("keyword") String keyword);
+
+    int incrementViewCount(@Param("id") Long id);
+
+    int incrementCommentCount(@Param("id") Long id);
+
+    int countCommentsByPostId(@Param("postId") Long postId);
 }

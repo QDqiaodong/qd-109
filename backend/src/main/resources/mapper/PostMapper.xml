@@ -64,4 +64,16 @@
         WHERE p.id = #{id} AND p.deleted = 0
     </select>
 
+    <update id="incrementViewCount">
+        UPDATE t_post SET view_count = view_count + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="incrementCommentCount">
+        UPDATE t_post SET comment_count = comment_count + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="countCommentsByPostId" resultType="int">
+        SELECT COUNT(*) FROM t_comment WHERE post_id = #{postId} AND deleted = 0
+    </select>
+
 </mapper>

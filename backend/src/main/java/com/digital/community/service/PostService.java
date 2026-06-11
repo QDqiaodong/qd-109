@@ -2,6 +2,7 @@ package com.digital.community.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.digital.community.context.UserContext;
 import com.digital.community.dto.AccessoryCardDTO;
 import com.digital.community.dto.ImageGroupDTO;
 import com.digital.community.dto.PostDTO;
@@ -12,9 +13,12 @@ import com.digital.community.vo.ImageGroupVO;
 import com.digital.community.vo.PostVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +29,9 @@ public class PostService {
 
     private static final String LATEST_POSTS_KEY = "post:latest";
     private static final String HOT_POSTS_KEY = "post:hot";
+    private static final String POST_VIEW_KEY_PREFIX = "post:view:";
     private static final long CACHE_EXPIRE = 30;
+    private static final long VIEW_COUNT_EXPIRE_MINUTES = 30;
 
     @Resource
     private PostMapper postMapper;
@@ -75,11 +81,58 @@ public class PostService {
 
     public PostVO detail(Long id) {
         Post post = postMapper.selectById(id);
-        if (post != null) {
-            post.setViewCount(post.getViewCount() + 1);
-            postMapper.updateById(post);
+        if (post != null && shouldCountView(id)) {
+            postMapper.incrementViewCount(id);
         }
         return postMapper.selectPostById(id);
+    }
+
+    private boolean shouldCountView(Long postId) {
+        String viewerIdentifier = getViewerIdentifier();
+        String key = POST_VIEW_KEY_PREFIX + postId + ":" + viewerIdentifier;
+        Boolean absent = redisTemplate.opsForValue().setIfAbsent(key, "1", VIEW_COUNT_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        return Boolean.TRUE.equals(absent);
+    }
+
+    private String getViewerIdentifier() {
+        Long userId = UserContext.getUserId();
+        if (userId != null) {
+            return "user:" + userId;
+        }
+        String ip = getClientIp();
+        return "ip:" + ip;
+    }
+
+    private String getClientIp() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) {
+                return "unknown";
+            }
+            HttpServletRequest request = attrs.getRequest();
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("Proxy-Client-IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("WL-Proxy-Client-IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("HTTP_CLIENT_IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getRemoteAddr();
+            }
+            if (ip != null && ip.contains(",")) {
+                ip = ip.split(",")[0].trim();
+            }
+            return ip == null ? "unknown" : ip;
+        } catch (Exception e) {
+            return "unknown";
+        }
     }
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -157,11 +210,25 @@ public class PostService {
         return vo;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void incrementCommentCount(Long postId) {
-        Post post = postMapper.selectById(postId);
-        if (post != null) {
-            post.setCommentCount(post.getCommentCount() + 1);
-            postMapper.updateById(post);
+        postMapper.incrementCommentCount(postId);
+        recalibrateCommentCount(postId);
+    }
+
+    private void recalibrateCommentCount(Long postId) {
+        try {
+            Post post = postMapper.selectById(postId);
+            if (post == null) {
+                return;
+            }
+            int actualCount = postMapper.countCommentsByPostId(postId);
+            if (!post.getCommentCount().equals(actualCount)) {
+                post.setCommentCount(actualCount);
+                postMapper.updateById(post);
+            }
+        } catch (Exception e) {
+            // ignore calibration error
         }
     }
 }
