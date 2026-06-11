@@ -5,9 +5,19 @@ import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router'
 import './assets/main.scss'
+import { useCompareStore } from '@/store/compare'
+import { useUserStore } from '@/store/user'
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
+
+const compareStore = useCompareStore()
+compareStore.init()
+
+const userStore = useUserStore()
+userStore.init()
+
 app.mount('#app')

@@ -288,7 +288,13 @@ import CompareBar from '@/components/CompareBar.vue'
 
 const compareStore = useCompareStore()
 
-const isInCompare = (postId) => compareStore.isInCompare(postId)
+const comparedIdSet = computed(() => {
+  const set = new Set()
+  compareStore.compareList.forEach(item => set.add(item.id))
+  return set
+})
+
+const isInCompare = (postId) => comparedIdSet.value.has(postId)
 
 const toggleCompare = (post) => {
   if (isInCompare(post.id)) {

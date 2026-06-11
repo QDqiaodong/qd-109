@@ -26,18 +26,23 @@ const isValidPost = (post) => {
 }
 
 export const useCompareStore = defineStore('compare', () => {
-  const compareList = ref([])
+  const compareList = ref(safeParseCompareList())
 
   const count = computed(() => compareList.value.length)
   const isEmpty = computed(() => compareList.value.length === 0)
   const isMax = computed(() => compareList.value.length >= MAX_COMPARE_ITEMS)
 
+  let storageListenerAttached = false
+
   const init = () => {
     compareList.value = safeParseCompareList()
 
-    try {
-      window.addEventListener('storage', handleStorageChange)
-    } catch (e) {}
+    if (!storageListenerAttached) {
+      try {
+        window.addEventListener('storage', handleStorageChange)
+        storageListenerAttached = true
+      } catch (e) {}
+    }
   }
 
   const handleStorageChange = (e) => {

@@ -29,18 +29,23 @@ const safeParseUserInfo = () => {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const userInfo = ref(null)
+  const userInfo = ref(safeParseUserInfo())
 
   const isLoggedIn = computed(() => {
     return userInfo.value && isValidUserInfo(userInfo.value)
   })
 
+  let storageListenerAttached = false
+
   const init = () => {
     userInfo.value = safeParseUserInfo()
 
-    try {
-      window.addEventListener('storage', handleStorageChange)
-    } catch (e) {}
+    if (!storageListenerAttached) {
+      try {
+        window.addEventListener('storage', handleStorageChange)
+        storageListenerAttached = true
+      } catch (e) {}
+    }
   }
 
   const handleStorageChange = (e) => {

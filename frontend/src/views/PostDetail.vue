@@ -1,5 +1,5 @@
 <template>
-  <div class="post-detail container">
+  <div class="post-detail container" :class="{ 'has-compare-bar': !compareStore.isEmpty }">
     <div class="detail-layout">
       <div class="main-content">
         <div class="post-card card" v-loading="loading">
@@ -159,6 +159,15 @@
             <span>👁️ 浏览 {{ post?.viewCount }}</span>
             <span>💬 评论 {{ post?.commentCount }}</span>
             <span>👍 点赞 {{ post?.likeCount }}</span>
+            <button
+              v-if="post"
+              :class="['compare-btn', { active: isCompared }]"
+              @click.stop="handleToggleCompare"
+              :title="isCompared ? '移出对照' : '加入对照'"
+            >
+              <span class="compare-icon">⚖️</span>
+              <span class="compare-text">{{ isCompared ? '已对照' : '对照' }}</span>
+            </button>
           </div>
         </div>
 
@@ -282,6 +291,8 @@
         ><ArrowRight /></el-icon>
       </div>
     </el-dialog>
+
+    <CompareBar />
   </div>
 </template>
 
@@ -290,9 +301,11 @@ import { ref, onMounted, computed, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
+import { useCompareStore } from '@/store/compare'
 import { ElMessage } from 'element-plus'
 import { Reading, ArrowLeft, ArrowRight, Collection, Close } from '@element-plus/icons-vue'
 import AccessoryCard from '@/components/AccessoryCard.vue'
+import CompareBar from '@/components/CompareBar.vue'
 
 const GROUP_META = {
   appearance: { icon: '🎨', color: '#722ed1', desc: '产品整体外观、设计语言、做工细节' },
@@ -303,12 +316,32 @@ const GROUP_META = {
 
 const route = useRoute()
 const userStore = useUserStore()
+const compareStore = useCompareStore()
 const post = ref(null)
 const comments = ref([])
 const loading = ref(false)
 const commentLoading = ref(false)
 const commentContent = ref('')
 const replyingTo = ref(null)
+
+const isCompared = computed(() => post.value ? compareStore.isInCompare(post.value.id) : false)
+
+const handleToggleCompare = () => {
+  if (!post.value) return
+  if (isCompared.value) {
+    compareStore.removeFromCompare(post.value.id)
+    ElMessage.info('已移出对照清单')
+  } else {
+    if (compareStore.isMax) {
+      ElMessage.warning(`对照清单最多添加 ${compareStore.MAX_COMPARE_ITEMS} 篇帖子`)
+      return
+    }
+    const added = compareStore.addToCompare(post.value)
+    if (added) {
+      ElMessage.success('已加入对照清单')
+    }
+  }
+}
 
 const imagePreviewVisible = ref(false)
 const currentPreviewIdx = ref(0)
@@ -999,11 +1032,52 @@ const cancelReply = () => {
 
   .post-stats-bar {
     display: flex;
+    align-items: center;
     gap: 32px;
     padding: 16px 0;
     border-top: 1px solid #f0f0f0;
     font-size: 14px;
     color: #999;
+
+    .compare-btn {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      font-size: 13px;
+      border: 1px solid #d9d9d9;
+      border-radius: 18px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #722ed1;
+        color: #722ed1;
+        background: #f9f0ff;
+      }
+
+      &.active {
+        border-color: #722ed1;
+        background: #722ed1;
+        color: #fff;
+
+        &:hover {
+          background: #9254de;
+          border-color: #9254de;
+        }
+      }
+
+      .compare-icon {
+        font-size: 13px;
+      }
+
+      .compare-text {
+        font-weight: 500;
+      }
+    }
   }
 
   .section-title {
