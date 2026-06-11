@@ -501,8 +501,17 @@ const handleFilterChange = () => {
 watch(keyword, () => {
   selectedCategory.value = null
   selectedType.value = null
+  expandedGroups.clear()
   infinite.reload()
   window.scrollTo({ top: 0, behavior: 'auto' })
+})
+
+watch(viewMode, () => {
+  expandedGroups.clear()
+})
+
+watch(groupBy, () => {
+  expandedGroups.clear()
 })
 
 onMounted(() => {

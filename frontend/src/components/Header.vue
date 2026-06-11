@@ -196,18 +196,30 @@ const handleSearchFocus = () => {
 }
 
 const handleSearchClear = () => {
-  suggestions.value = []
-  showDropdown.value = false
+  resetSearchState()
 }
 
 const handleSearchSubmit = () => {
   if (!searchKeyword.value.trim()) return
+  const keyword = searchKeyword.value.trim()
   showDropdown.value = false
-  router.push({ path: '/search', query: { q: searchKeyword.value.trim() } })
+  suggestions.value = []
+  router.push({ path: '/search', query: { q: keyword } })
+}
+
+const resetSearchState = () => {
+  searchKeyword.value = ''
+  suggestions.value = []
+  showDropdown.value = false
+  activeIndex.value = -1
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
 }
 
 const handleSuggestionClick = (post) => {
-  showDropdown.value = false
+  resetSearchState()
   router.push(`/post/${post.id}`)
 }
 
@@ -225,6 +237,8 @@ onMounted(() => {
 
   if (route.name === 'Search' && route.query.q) {
     searchKeyword.value = route.query.q
+  } else if (route.name !== 'Search') {
+    resetSearchState()
   }
 })
 
@@ -234,9 +248,11 @@ watch(() => route.query.q, (newQ) => {
   }
 })
 
-watch(() => route.name, (newName) => {
+watch(() => route.name, (newName, oldName) => {
   if (newName !== 'Search') {
-    showDropdown.value = false
+    resetSearchState()
+  } else if (oldName !== 'Search' && route.query.q) {
+    searchKeyword.value = route.query.q
   }
 })
 
