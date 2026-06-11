@@ -362,6 +362,7 @@ const processFile = async (file) => {
   }
 
   imageList.value.push(item)
+  emitChange()
 
   try {
     const result = await compressImage(file)
@@ -484,26 +485,30 @@ const handlePreviewWheel = (e) => {
 }
 
 const handleRemove = (index) => {
+  const targetUid = imageList.value[index]?.uid
+  if (!targetUid) return
   ElMessageBox.confirm('确定要删除这张图片吗？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    const item = imageList.value[index]
+    const currentIdx = imageList.value.findIndex(item => item.uid === targetUid)
+    if (currentIdx === -1) return
+    const item = imageList.value[currentIdx]
     if (item.previewUrl) {
       URL.revokeObjectURL(item.previewUrl)
     }
-    imageList.value.splice(index, 1)
+    imageList.value.splice(currentIdx, 1)
 
-    if (previewVisible.value && index === currentPreviewIndex.value) {
+    if (previewVisible.value && currentIdx === currentPreviewIndex.value) {
       if (imageList.value.length === 0) {
         previewVisible.value = false
         previewImage.value = null
       } else {
-        currentPreviewIndex.value = Math.min(index, imageList.value.length - 1)
+        currentPreviewIndex.value = Math.min(currentIdx, imageList.value.length - 1)
         previewImage.value = imageList.value[currentPreviewIndex.value]
       }
-    } else if (previewVisible.value && index < currentPreviewIndex.value) {
+    } else if (previewVisible.value && currentIdx < currentPreviewIndex.value) {
       currentPreviewIndex.value--
       previewImage.value = imageList.value[currentPreviewIndex.value]
     }

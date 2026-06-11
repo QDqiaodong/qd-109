@@ -129,11 +129,17 @@
           <h3 class="section-title">💬 评论区 ({{ comments.length }})</h3>
 
           <div class="comment-input-wrap">
+            <div v-if="replyingTo" class="reply-indicator">
+              <span class="reply-label">
+                回复 <em>@{{ replyingTo.nickname }}</em>
+              </span>
+              <el-icon class="reply-cancel" @click="cancelReply"><Close /></el-icon>
+            </div>
             <el-input
               v-model="commentContent"
               type="textarea"
               :rows="3"
-              placeholder="写下你的评论..."
+              :placeholder="replyingTo ? `回复 @${replyingTo.nickname}...` : '写下你的评论...'"
             />
             <div class="comment-actions">
               <el-button type="primary" @click="submitComment" :disabled="!commentContent">
@@ -248,7 +254,7 @@ import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
-import { Reading, ArrowLeft, ArrowRight, Collection } from '@element-plus/icons-vue'
+import { Reading, ArrowLeft, ArrowRight, Collection, Close } from '@element-plus/icons-vue'
 import AccessoryCard from '@/components/AccessoryCard.vue'
 
 const GROUP_META = {
@@ -487,6 +493,10 @@ const replyTo = (comment) => {
     return
   }
   replyingTo.value = comment
+}
+
+const cancelReply = () => {
+  replyingTo.value = null
 }
 </script>
 
@@ -891,6 +901,39 @@ const replyTo = (comment) => {
 
   .comment-input-wrap {
     margin-bottom: 24px;
+
+    .reply-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      margin-bottom: 10px;
+      background: #ecf5ff;
+      border-radius: 6px;
+      border: 1px solid #d9ecff;
+
+      .reply-label {
+        font-size: 13px;
+        color: #606266;
+
+        em {
+          font-style: normal;
+          color: #409eff;
+          font-weight: 600;
+        }
+      }
+
+      .reply-cancel {
+        font-size: 16px;
+        color: #909399;
+        cursor: pointer;
+        transition: color 0.2s;
+
+        &:hover {
+          color: #f56c6c;
+        }
+      }
+    }
 
     .comment-actions {
       margin-top: 12px;

@@ -33,43 +33,19 @@
               />
             </el-form-item>
 
-            <el-form-item label="故障现象" v-if="form.type === 2">
-              <FaultTemplate v-model="faultTemplate" @apply="applyTemplateContent" />
-            </el-form-item>
-
             <el-form-item label="帖子内容">
               <el-input
                 v-model="form.content"
                 type="textarea"
                 :rows="10"
-                :placeholder="form.type === 2 ? '请输入详细的问题描述，也可以使用上方故障现象模板快速填写...' : '请输入详细内容，分享你的使用体验或遇到的问题...'"
+                placeholder="请输入详细内容，分享你的使用体验或遇到的问题..."
                 maxlength="5000"
                 show-word-limit
               />
             </el-form-item>
 
             <el-form-item label="上传图片">
-              <ImageUpload v-model="images" :limit="20" @change="handleImageChange" />
-            </el-form-item>
-
-            <el-form-item label="图片编排" v-if="form.type === 1 && allImageItems.length > 0">
-              <ImageGroupEditor
-                v-model="imageGroups"
-                :image-list="allImageItems"
-                @change="handleGroupChange"
-              />
-              <div class="form-item-tip" v-if="imageGroupInfo.organizedCount > 0 && imageGroupInfo.organizedCount < imageGroupInfo.total">
-                <el-icon><InfoFilled /></el-icon>
-                还有 <strong>{{ imageGroupInfo.total - imageGroupInfo.organizedCount }}</strong> 张图片未编排，未编排的图片不会按分组顺序展示
-              </div>
-              <div class="form-item-tip success" v-if="imageGroupInfo.organizedCount > 0 && imageGroupInfo.organizedCount === imageGroupInfo.total">
-                <el-icon><CircleCheckFilled /></el-icon>
-                全部 {{ imageGroupInfo.total }} 张图片已完成编排，浏览者将按你的节奏查看
-              </div>
-            </el-form-item>
-
-            <el-form-item label="配件参数">
-              <AccessoryCardEditor v-model="accessoryCards" />
+              <ImageUpload v-model="images" :limit="9" @change="handleImageChange" />
             </el-form-item>
 
             <el-form-item>
@@ -100,30 +76,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCategories, createPost } from '@/api'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { InfoFilled, CircleCheckFilled } from '@element-plus/icons-vue'
 import ImageUpload from '@/components/ImageUpload.vue'
-import ImageGroupEditor from '@/components/ImageGroupEditor.vue'
-import AccessoryCardEditor from '@/components/AccessoryCardEditor.vue'
-import FaultTemplate from '@/components/FaultTemplate.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
-const allImageItems = computed(() => {
-  const list = imageInfo.value.all || []
-  return list.slice()
-})
-const imageGroups = ref([])
-const imageGroupInfo = reactive({ organizedCount: 0, total: 0, groups: [] })
-const accessoryCards = ref([])
-const faultTemplate = ref({})
 const submitting = ref(false)
 
 const form = reactive({
@@ -135,21 +99,6 @@ const form = reactive({
 
 const handleImageChange = (info) => {
   imageInfo.value = info
-}
-
-const handleGroupChange = (info) => {
-  imageGroupInfo.organizedCount = info.organizedCount || 0
-  imageGroupInfo.total = info.total || 0
-  imageGroupInfo.groups = info.groups || []
-}
-
-const applyTemplateContent = (content) => {
-  if (form.content.trim()) {
-    form.content = form.content + '\n\n' + content
-  } else {
-    form.content = content
-  }
-  ElMessage.success('已应用到帖子内容')
 }
 
 onMounted(() => {
@@ -167,6 +116,15 @@ const loadCategories = async () => {
   categories.value = await getCategories()
 }
 
+const getRealtimeImageCounts = () => {
+  const all = imageInfo.value.all || []
+  return {
+    failedCount: all.filter(i => i.status === 'failed').length,
+    uploadingCount: all.filter(i => i.status === 'uploading').length,
+    successCount: all.filter(i => i.status === 'success').length
+  }
+}
+
 const submit = async () => {
   if (!form.categoryId) {
     ElMessage.warning('请选择分类')
@@ -176,14 +134,16 @@ const submit = async () => {
     ElMessage.warning('请输入标题')
     return
   }
-  if (!form.content.trim() && !(form.type === 2 && hasFaultTemplateContent())) {
-    ElMessage.warning('请输入内容或填写故障现象模板')
+  if (!form.content.trim()) {
+    ElMessage.warning('请输入内容')
     return
   }
 
-  if (imageInfo.value.failedCount > 0) {
+  const { failedCount, uploadingCount } = getRealtimeImageCounts()
+
+  if (failedCount > 0) {
     ElMessageBox.confirm(
-      `有 ${imageInfo.value.failedCount} 张图片上传失败，是否继续发布？失败的图片将不会被包含。`,
+      `有 ${failedCount} 张图片上传失败，是否继续发布？失败的图片将不会被包含。`,
       '提示',
       {
         confirmButtonText: '继续发布',
@@ -196,51 +156,12 @@ const submit = async () => {
     return
   }
 
-  if (imageInfo.value.uploadingCount > 0) {
+  if (uploadingCount > 0) {
     ElMessage.warning('图片正在上传中，请稍候...')
     return
   }
 
   await doSubmit()
-}
-
-const hasFaultTemplateContent = () => {
-  const t = faultTemplate.value
-  return t && (t.deviceModel || t.accessoryModel || t.connectionType || t.symptoms || t.triedActions)
-}
-
-const generateFaultTemplateContent = () => {
-  const t = faultTemplate.value
-  if (!t) return ''
-  const lines = []
-  if (t.deviceModel) lines.push(`📱 **设备型号**：${t.deviceModel}`)
-  if (t.accessoryModel) lines.push(`🔧 **配件型号**：${t.accessoryModel}`)
-  if (t.connectionType) lines.push(`🔌 **连接方式**：${t.connectionType}`)
-  if (t.symptoms) {
-    lines.push('')
-    lines.push('❓ **出现症状**')
-    lines.push('')
-    lines.push(t.symptoms)
-  }
-  if (t.triedActions) {
-    lines.push('')
-    lines.push('🔄 **已尝试动作**')
-    lines.push('')
-    lines.push(t.triedActions)
-  }
-  return lines.join('\n')
-}
-
-const contentHasTemplateMarkers = (content) => {
-  if (!content) return false
-  const markers = [
-    '📱 **设备型号**',
-    '🔧 **配件型号**',
-    '🔌 **连接方式**',
-    '❓ **出现症状**',
-    '🔄 **已尝试动作**'
-  ]
-  return markers.some(m => content.includes(m))
 }
 
 const doSubmit = async () => {
@@ -254,28 +175,10 @@ const doSubmit = async () => {
 
   submitting.value = true
   try {
-    let finalContent = form.content
-    if (form.type === 2 && hasFaultTemplateContent() && !contentHasTemplateMarkers(finalContent)) {
-      const templateContent = generateFaultTemplateContent()
-      if (templateContent) {
-        if (finalContent.trim()) {
-          finalContent = templateContent + '\n\n---\n\n' + finalContent
-        } else {
-          finalContent = templateContent
-        }
-      }
-    }
-
-    const postData = {
+    await createPost({
       ...form,
-      content: finalContent,
-      images: images.value,
-      accessoryCards: accessoryCards.value
-    }
-    if (form.type === 1 && imageGroups.value && imageGroups.value.length > 0) {
-      postData.imageGroups = imageGroups.value
-    }
-    await createPost(postData)
+      images: images.value
+    })
     ElMessage.success('发布成功')
     router.push('/')
   } catch (e) {
@@ -333,41 +236,6 @@ const doSubmit = async () => {
         left: 0;
         color: #52c41a;
         font-weight: 600;
-      }
-    }
-  }
-
-  .form-item-tip {
-    margin-top: 12px;
-    padding: 10px 14px;
-    background: #fffbe6;
-    border: 1px solid #ffe58f;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #d48806;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    line-height: 1.6;
-
-    .el-icon {
-      flex-shrink: 0;
-      font-size: 16px;
-    }
-
-    strong {
-      color: #ad6800;
-      font-weight: 600;
-      margin: 0 2px;
-    }
-
-    &.success {
-      background: #f0f9eb;
-      border-color: #c2e7b0;
-      color: #52c41a;
-
-      strong {
-        color: #389e0d;
       }
     }
   }
