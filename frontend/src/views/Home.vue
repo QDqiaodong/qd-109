@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getPostList, getHotPosts, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
@@ -111,6 +111,8 @@ const handleTabChange = () => {
 }
 
 onMounted(() => {
+  compareStore.init()
+  compareStore.syncFromStorage()
   infinite.loadMore()
   loadHotPosts()
   loadCategories()

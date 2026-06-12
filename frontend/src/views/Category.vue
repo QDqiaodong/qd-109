@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPostList, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -114,6 +114,8 @@ watch(categoryId, () => {
 
 onMounted(async () => {
   await router.isReady()
+  compareStore.init()
+  compareStore.syncFromStorage()
   loadCategories()
   infinite.loadMore()
 })

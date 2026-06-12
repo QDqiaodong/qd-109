@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'compareList'
+const EVENT_KEY = 'compareListUpdated'
 const MAX_COMPARE_ITEMS = 4
 
 const safeParseCompareList = () => {
@@ -27,19 +28,49 @@ const isValidPost = (post) => {
 
 export const useCompareStore = defineStore('compare', () => {
   const compareList = ref(safeParseCompareList())
+  const updateTick = ref(0)
 
-  const count = computed(() => compareList.value.length)
-  const isEmpty = computed(() => compareList.value.length === 0)
-  const isMax = computed(() => compareList.value.length >= MAX_COMPARE_ITEMS)
+  const count = computed(() => {
+    updateTick.value
+    return compareList.value.length
+  })
+  const isEmpty = computed(() => {
+    updateTick.value
+    return compareList.value.length === 0
+  })
+  const isMax = computed(() => {
+    updateTick.value
+    return compareList.value.length >= MAX_COMPARE_ITEMS
+  })
 
   let storageListenerAttached = false
+  const listeners = new Set()
+
+  const notifyUpdated = () => {
+    updateTick.value++
+    try {
+      window.dispatchEvent(new CustomEvent(EVENT_KEY, { detail: { list: compareList.value } }))
+    } catch (e) {}
+    listeners.forEach(fn => {
+      try { fn(compareList.value) } catch (e) {}
+    })
+  }
+
+  const subscribe = (fn) => {
+    if (typeof fn === 'function') {
+      listeners.add(fn)
+    }
+    return () => listeners.delete(fn)
+  }
 
   const init = () => {
     compareList.value = safeParseCompareList()
+    notifyUpdated()
 
     if (!storageListenerAttached) {
       try {
         window.addEventListener('storage', handleStorageChange)
+        window.addEventListener(EVENT_KEY, handleCustomEvent)
         storageListenerAttached = true
       } catch (e) {}
     }
@@ -52,14 +83,25 @@ export const useCompareStore = defineStore('compare', () => {
           const data = JSON.parse(e.newValue)
           if (Array.isArray(data)) {
             compareList.value = data.filter(isValidPost)
+            notifyUpdated()
           }
         } catch (err) {
           compareList.value = []
+          notifyUpdated()
         }
       } else {
         compareList.value = []
+        notifyUpdated()
       }
     }
+  }
+
+  const handleCustomEvent = (e) => {
+    try {
+      if (e.detail && Array.isArray(e.detail.list)) {
+        compareList.value = e.detail.list.filter(isValidPost)
+      }
+    } catch (err) {}
   }
 
   const saveToStorage = () => {
@@ -71,6 +113,7 @@ export const useCompareStore = defineStore('compare', () => {
   }
 
   const isInCompare = (postId) => {
+    updateTick.value
     return compareList.value.some(item => item.id === postId)
   }
 
@@ -98,6 +141,7 @@ export const useCompareStore = defineStore('compare', () => {
 
     compareList.value.push(minimalPost)
     saveToStorage()
+    notifyUpdated()
     return true
   }
 
@@ -106,6 +150,7 @@ export const useCompareStore = defineStore('compare', () => {
     if (index > -1) {
       compareList.value.splice(index, 1)
       saveToStorage()
+      notifyUpdated()
       return true
     }
     return false
@@ -123,6 +168,12 @@ export const useCompareStore = defineStore('compare', () => {
   const clearCompare = () => {
     compareList.value = []
     saveToStorage()
+    notifyUpdated()
+  }
+
+  const syncFromStorage = () => {
+    compareList.value = safeParseCompareList()
+    notifyUpdated()
   }
 
   return {
@@ -132,6 +183,8 @@ export const useCompareStore = defineStore('compare', () => {
     isMax,
     MAX_COMPARE_ITEMS,
     init,
+    syncFromStorage,
+    subscribe,
     isInCompare,
     addToCompare,
     removeFromCompare,

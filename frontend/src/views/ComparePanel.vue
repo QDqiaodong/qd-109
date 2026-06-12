@@ -162,12 +162,18 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCompareStore } from '@/store/compare'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const compareStore = useCompareStore()
+
+onMounted(() => {
+  compareStore.init()
+  compareStore.syncFromStorage()
+})
 
 const formatTime = (time) => {
   if (!time) return ''

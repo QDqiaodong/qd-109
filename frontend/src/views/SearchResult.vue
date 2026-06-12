@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { ref, computed, watch, onMounted, reactive, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { searchPosts, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -288,16 +288,15 @@ import CompareBar from '@/components/CompareBar.vue'
 
 const compareStore = useCompareStore()
 
-const comparedIdSet = computed(() => {
-  const set = new Set()
-  compareStore.compareList.forEach(item => set.add(item.id))
-  return set
-})
+const forceRenderTick = ref(0)
 
-const isInCompare = (postId) => comparedIdSet.value.has(postId)
+const isInCompare = (postId) => {
+  forceRenderTick.value
+  return compareStore.isInCompare(postId)
+}
 
 const toggleCompare = (post) => {
-  if (isInCompare(post.id)) {
+  if (compareStore.isInCompare(post.id)) {
     compareStore.removeFromCompare(post.id)
     ElMessage.info('已移出对照清单')
   } else {
@@ -520,10 +519,24 @@ watch(groupBy, () => {
   expandedGroups.clear()
 })
 
+let unsubscribeCompare = null
+
 onMounted(() => {
+  compareStore.init()
+  compareStore.syncFromStorage()
+  unsubscribeCompare = compareStore.subscribe(() => {
+    forceRenderTick.value++
+  })
   loadCategories()
   if (keyword.value) {
     infinite.loadMore()
+  }
+})
+
+onUnmounted(() => {
+  if (unsubscribeCompare) {
+    unsubscribeCompare()
+    unsubscribeCompare = null
   }
 })
 

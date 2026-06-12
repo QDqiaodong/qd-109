@@ -297,7 +297,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -323,8 +323,12 @@ const loading = ref(false)
 const commentLoading = ref(false)
 const commentContent = ref('')
 const replyingTo = ref(null)
+const forceRenderTick = ref(0)
 
-const isCompared = computed(() => post.value ? compareStore.isInCompare(post.value.id) : false)
+const isCompared = computed(() => {
+  forceRenderTick.value
+  return post.value ? compareStore.isInCompare(post.value.id) : false
+})
 
 const handleToggleCompare = () => {
   if (!post.value) return
@@ -517,9 +521,23 @@ const hasFaultInfo = computed(() => {
          fi.platform || fi.environment || fi.symptoms || fi.triedActions
 })
 
+let unsubscribeCompare = null
+
 onMounted(() => {
+  compareStore.init()
+  compareStore.syncFromStorage()
+  unsubscribeCompare = compareStore.subscribe(() => {
+    forceRenderTick.value++
+  })
   loadPost()
   loadComments()
+})
+
+onUnmounted(() => {
+  if (unsubscribeCompare) {
+    unsubscribeCompare()
+    unsubscribeCompare = null
+  }
 })
 
 const loadPost = async () => {

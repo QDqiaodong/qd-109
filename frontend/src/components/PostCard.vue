@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useCompareStore } from '@/store/compare'
 import { ElMessage } from 'element-plus'
 
@@ -58,8 +58,27 @@ const props = defineProps({
 })
 
 const compareStore = useCompareStore()
+const forceRenderTick = ref(0)
 
-const isCompared = computed(() => compareStore.isInCompare(props.post.id))
+let unsubscribeCompare = null
+
+const isCompared = computed(() => {
+  forceRenderTick.value
+  return compareStore.isInCompare(props.post.id)
+})
+
+onMounted(() => {
+  unsubscribeCompare = compareStore.subscribe(() => {
+    forceRenderTick.value++
+  })
+})
+
+onUnmounted(() => {
+  if (unsubscribeCompare) {
+    unsubscribeCompare()
+    unsubscribeCompare = null
+  }
+})
 
 const handleToggleCompare = () => {
   if (isCompared.value) {
