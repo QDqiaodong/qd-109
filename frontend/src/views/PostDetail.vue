@@ -71,8 +71,18 @@
 
           <div v-if="hasImageGroups" class="grouped-images-section">
             <div class="section-intro">
-              <el-icon><Reading /></el-icon>
-              <span>作者按以下节奏分享使用体验</span>
+              <div class="section-intro-left">
+                <el-icon><Reading /></el-icon>
+                <span>作者按以下节奏分享使用体验</span>
+              </div>
+              <button
+                v-if="sortedImageGroups.length >= 2"
+                class="before-after-trigger"
+                @click="openBeforeAfter"
+              >
+                <span class="trigger-icon">🔍</span>
+                <span>前后对照</span>
+              </button>
             </div>
             <div class="grouped-images-flow">
               <div
@@ -293,6 +303,13 @@
     </el-dialog>
 
     <CompareBar />
+
+    <BeforeAfterViewer
+      v-model:visible="beforeAfterVisible"
+      :image-groups="sortedImageGroups"
+      :default-left-key="beforeAfterLeftKey"
+      :default-right-key="beforeAfterRightKey"
+    />
   </div>
 </template>
 
@@ -306,6 +323,7 @@ import { ElMessage } from 'element-plus'
 import { Reading, ArrowLeft, ArrowRight, Collection, Close } from '@element-plus/icons-vue'
 import AccessoryCard from '@/components/AccessoryCard.vue'
 import CompareBar from '@/components/CompareBar.vue'
+import BeforeAfterViewer from '@/components/BeforeAfterViewer.vue'
 
 const GROUP_META = {
   appearance: { icon: '🎨', color: '#722ed1', desc: '产品整体外观、设计语言、做工细节' },
@@ -324,6 +342,9 @@ const commentLoading = ref(false)
 const commentContent = ref('')
 const replyingTo = ref(null)
 const forceRenderTick = ref(0)
+const beforeAfterVisible = ref(false)
+const beforeAfterLeftKey = ref('')
+const beforeAfterRightKey = ref('')
 
 const isCompared = computed(() => {
   forceRenderTick.value
@@ -345,6 +366,18 @@ const handleToggleCompare = () => {
       ElMessage.success('已加入对照清单')
     }
   }
+}
+
+const openBeforeAfter = () => {
+  const groups = sortedImageGroups.value
+  if (groups.length >= 2) {
+    beforeAfterLeftKey.value = groups[0].key
+    beforeAfterRightKey.value = groups[groups.length - 1].key
+  } else if (groups.length === 1) {
+    beforeAfterLeftKey.value = groups[0].key
+    beforeAfterRightKey.value = groups[0].key
+  }
+  beforeAfterVisible.value = true
 }
 
 const imagePreviewVisible = ref(false)
@@ -781,9 +814,9 @@ const cancelReply = () => {
     border: 1px solid #ebeef5;
 
     .section-intro {
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
       padding: 8px 16px;
       background: #fff;
       border-radius: 20px;
@@ -793,9 +826,42 @@ const cancelReply = () => {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       margin-bottom: 24px;
 
+      .section-intro-left {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
       .el-icon {
         color: #409eff;
         font-size: 16px;
+      }
+    }
+
+    .before-after-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border: 1px solid #d9d9d9;
+      border-radius: 18px;
+      background: #fff;
+      color: #666;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.25s;
+
+      &:hover {
+        border-color: #722ed1;
+        color: #722ed1;
+        background: #f9f0ff;
+        box-shadow: 0 2px 8px rgba(114, 46, 209, 0.12);
+        transform: translateY(-1px);
+      }
+
+      .trigger-icon {
+        font-size: 14px;
       }
     }
   }
