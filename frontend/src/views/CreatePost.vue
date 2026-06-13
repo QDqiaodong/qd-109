@@ -55,7 +55,7 @@
             </el-form-item>
 
             <el-form-item label="上传图片" v-if="form.type === 1">
-              <ImageUpload v-model="images" :limit="9" @change="handleImageChange" />
+              <ImageUpload ref="imageUploadRef" v-model="images" :limit="9" @change="handleImageChange" />
             </el-form-item>
 
             <el-form-item>
@@ -124,6 +124,7 @@ const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
 const submitting = ref(false)
+const imageUploadRef = ref(null)
 const faultTemplateRef = ref(null)
 const faultData = ref({})
 
@@ -212,6 +213,11 @@ const submit = async () => {
 
   const { failedCount, uploadingCount } = getRealtimeImageCounts()
 
+  if (uploadingCount > 0) {
+    ElMessage.warning('图片正在上传中，请稍候...')
+    return
+  }
+
   if (failedCount > 0) {
     ElMessageBox.confirm(
       `有 ${failedCount} 张图片上传失败，是否继续发布？失败的图片将不会被包含。`,
@@ -222,13 +228,9 @@ const submit = async () => {
         type: 'warning'
       }
     ).then(async () => {
+      imageUploadRef.value?.clearFailed()
       await doSubmit()
     }).catch(() => {})
-    return
-  }
-
-  if (uploadingCount > 0) {
-    ElMessage.warning('图片正在上传中，请稍候...')
     return
   }
 

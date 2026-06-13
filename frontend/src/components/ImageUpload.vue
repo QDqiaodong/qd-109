@@ -619,6 +619,21 @@ watch(
   { immediate: true }
 )
 
+const clearFailed = () => {
+  const failedItems = imageList.value.filter(item => item.status === 'failed')
+  failedItems.forEach(item => {
+    if (item.previewUrl && item.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(item.previewUrl)
+    }
+  })
+  imageList.value = imageList.value.filter(item => item.status !== 'failed')
+  emitChange()
+}
+
+defineExpose({
+  clearFailed
+})
+
 onBeforeUnmount(() => {
   imageList.value.forEach(item => {
     if (item.previewUrl && item.previewUrl.startsWith('blob:')) {

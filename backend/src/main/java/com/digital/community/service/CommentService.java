@@ -65,6 +65,16 @@ public class CommentService {
         }
 
         try {
+            if (dto.getParentId() != null) {
+                Comment parentComment = commentMapper.selectById(dto.getParentId());
+                if (parentComment == null || parentComment.getDeleted() == 1) {
+                    throw new IllegalArgumentException("回复的评论不存在或已被删除");
+                }
+                if (!parentComment.getPostId().equals(dto.getPostId())) {
+                    throw new IllegalArgumentException("回复的评论不属于当前帖子");
+                }
+            }
+
             Comment comment = new Comment();
             comment.setPostId(dto.getPostId());
             comment.setUserId(userId);

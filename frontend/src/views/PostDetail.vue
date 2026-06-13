@@ -297,7 +297,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -522,6 +522,24 @@ const hasFaultInfo = computed(() => {
 })
 
 let unsubscribeCompare = null
+
+const resetState = () => {
+  post.value = null
+  comments.value = []
+  replyingTo.value = null
+  commentContent.value = ''
+  previewScale.value = 1
+  imagePreviewVisible.value = false
+  currentPreviewIdx.value = 0
+  currentPreviewState.groupKey = null
+  currentPreviewState.indexInGroup = 0
+}
+
+watch(() => route.params.id, () => {
+  resetState()
+  loadPost()
+  loadComments()
+})
 
 onMounted(() => {
   compareStore.init()
