@@ -10,7 +10,7 @@ import java.util.List;
 
 @Mapper
 public interface PostMapper extends BaseMapper<Post> {
-    Page<PostVO> selectPostPage(Page<PostVO> page, @Param("categoryId") Long categoryId, @Param("type") Integer type, @Param("keyword") String keyword);
+    Page<PostVO> selectPostPage(Page<PostVO> page, @Param("categoryId") Long categoryId, @Param("type") Integer type, @Param("keyword") String keyword, @Param("sort") String sort);
     PostVO selectPostById(@Param("id") Long id);
     List<PostVO> selectPostSuggestions(@Param("keyword") String keyword);
 

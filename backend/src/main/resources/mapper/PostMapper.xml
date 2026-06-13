@@ -39,7 +39,16 @@
                  OR p.content LIKE CONCAT('%', #{keyword}, '%')
                  OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
         </if>
-        ORDER BY p.create_time DESC
+        <choose>
+            <when test="sort != null and sort == 'hot'">
+                ORDER BY (COALESCE(p.view_count, 0) + COALESCE(p.comment_count, 0) * 5 + COALESCE(p.like_count, 0) * 3)
+                    / POW(TIMESTAMPDIFF(HOUR, p.create_time, NOW()) + 2, 1.6) DESC,
+                    p.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY p.create_time DESC
+            </otherwise>
+        </choose>
     </select>
 
     <select id="selectPostSuggestions" resultMap="PostVOMap">

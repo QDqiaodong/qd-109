@@ -24,8 +24,9 @@ public class PostController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Integer type) {
-        return Result.success(postService.page(pageNum, pageSize, categoryId, type));
+            @RequestParam(required = false) Integer type,
+            @RequestParam(defaultValue = "latest") String sort) {
+        return Result.success(postService.page(pageNum, pageSize, categoryId, type, sort));
     }
 
     @GetMapping("/search")

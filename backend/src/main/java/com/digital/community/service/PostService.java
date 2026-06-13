@@ -1,7 +1,6 @@
 package com.digital.community.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.digital.community.context.UserContext;
 import com.digital.community.dto.AccessoryCardDTO;
 import com.digital.community.dto.ImageGroupDTO;
@@ -55,14 +54,14 @@ public class PostService {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
-    public Page<PostVO> page(Integer pageNum, Integer pageSize, Long categoryId, Integer type) {
+    public Page<PostVO> page(Integer pageNum, Integer pageSize, Long categoryId, Integer type, String sort) {
         Page<PostVO> page = new Page<>(pageNum, pageSize);
-        return postMapper.selectPostPage(page, categoryId, type, null);
+        return postMapper.selectPostPage(page, categoryId, type, null, sort);
     }
 
     public Page<PostVO> search(Integer pageNum, Integer pageSize, String keyword, Long categoryId, Integer type) {
         Page<PostVO> page = new Page<>(pageNum, pageSize);
-        return postMapper.selectPostPage(page, categoryId, type, keyword);
+        return postMapper.selectPostPage(page, categoryId, type, keyword, "latest");
     }
 
     public List<PostVO> searchSuggestions(String keyword) {
@@ -75,7 +74,7 @@ public class PostService {
         if (cached != null) {
             return cached;
         }
-        Page<PostVO> page = postMapper.selectPostPage(new Page<>(1, 10), null, null, null);
+        Page<PostVO> page = postMapper.selectPostPage(new Page<>(1, 10), null, null, null, "latest");
         List<PostVO> records = page.getRecords();
         redisTemplate.opsForValue().set(LATEST_POSTS_KEY, records, CACHE_EXPIRE, TimeUnit.MINUTES);
         return records;
@@ -87,10 +86,8 @@ public class PostService {
         if (cached != null) {
             return cached;
         }
-        Page<PostVO> page = new Page<>(1, 10);
-        page.setOrders(List.of(OrderItem.desc("view_count")));
-        Page<PostVO> result = postMapper.selectPostPage(page, null, null, null);
-        List<PostVO> records = result.getRecords();
+        Page<PostVO> page = postMapper.selectPostPage(new Page<>(1, 10), null, null, null, "hot");
+        List<PostVO> records = page.getRecords();
         redisTemplate.opsForValue().set(HOT_POSTS_KEY, records, CACHE_EXPIRE, TimeUnit.MINUTES);
         return records;
     }
