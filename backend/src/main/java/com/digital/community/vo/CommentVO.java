@@ -14,6 +14,8 @@ public class CommentVO {
     private Long parentId;
     private Long replyUserId;
     private String replyNickname;
+    private String replyContent;
+    private Integer floor;
     private String content;
     private LocalDateTime createTime;
     private List<CommentVO> children;

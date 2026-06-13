@@ -34,7 +34,60 @@ public class CommentService {
 
     public List<CommentVO> list(Long postId) {
         List<CommentVO> allComments = commentMapper.selectCommentsByPostId(postId);
+        enrichComments(allComments);
         return buildCommentTree(allComments);
+    }
+
+    private void enrichComments(List<CommentVO> comments) {
+        Map<Long, CommentVO> commentMap = new HashMap<>();
+        for (CommentVO comment : comments) {
+            commentMap.put(comment.getId(), comment);
+        }
+
+        int floorCounter = 0;
+        for (CommentVO comment : comments) {
+            floorCounter++;
+            comment.setFloor(floorCounter);
+
+            if (comment.getReplyUserId() != null) {
+                CommentVO repliedComment = findRepliedComment(comment, comments, commentMap);
+                if (repliedComment != null) {
+                    comment.setReplyContent(repliedComment.getContent());
+                    if (comment.getReplyNickname() == null) {
+                        comment.setReplyNickname(repliedComment.getNickname());
+                    }
+                }
+            }
+        }
+    }
+
+    private CommentVO findRepliedComment(CommentVO current, List<CommentVO> allComments, Map<Long, CommentVO> commentMap) {
+        if (current.getParentId() != null) {
+            List<CommentVO> siblings = allComments.stream()
+                    .filter(c -> current.getParentId().equals(c.getParentId())
+                            || current.getParentId().equals(c.getId()))
+                    .toList();
+
+            for (int i = siblings.size() - 1; i >= 0; i--) {
+                CommentVO c = siblings.get(i);
+                if (c.getId().equals(current.getId())) continue;
+                if (current.getReplyUserId().equals(c.getUserId())
+                        && c.getCreateTime().isBefore(current.getCreateTime())) {
+                    return c;
+                }
+            }
+        }
+
+        for (int i = allComments.size() - 1; i >= 0; i--) {
+            CommentVO c = allComments.get(i);
+            if (c.getId().equals(current.getId())) continue;
+            if (current.getReplyUserId().equals(c.getUserId())
+                    && c.getCreateTime().isBefore(current.getCreateTime())) {
+                return c;
+            }
+        }
+
+        return null;
     }
 
     private List<CommentVO> buildCommentTree(List<CommentVO> comments) {

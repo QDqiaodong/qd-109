@@ -185,12 +185,14 @@
           <h3 class="section-title">💬 评论区 ({{ comments.length }})</h3>
 
           <div class="comment-input-wrap">
-            <div v-if="replyingTo" class="reply-indicator">
-              <span class="reply-label">
-                回复 <em>@{{ replyingTo.nickname }}</em>
-              </span>
-              <el-icon class="reply-cancel" @click="cancelReply"><Close /></el-icon>
-            </div>
+            <QuoteBubble
+              v-if="replyingTo"
+              :floor="replyingTo.floor || ''"
+              :nickname="replyingTo.nickname"
+              :content="replyingTo.content"
+              :show-cancel="true"
+              @cancel="cancelReply"
+            />
             <el-input
               v-model="commentContent"
               type="textarea"
@@ -211,12 +213,17 @@
                 <div class="comment-content">
                   <div class="comment-header">
                     <span class="nickname">{{ comment.nickname }}</span>
+                    <span class="comment-floor" v-if="comment.floor">#{{ comment.floor }}</span>
                     <span class="comment-time">{{ comment.createTime }}</span>
                   </div>
+                  <QuoteBubble
+                    v-if="comment.replyNickname && comment.replyContent"
+                    :floor="''"
+                    :nickname="comment.replyNickname"
+                    :content="comment.replyContent"
+                    :max-length="60"
+                  />
                   <p class="comment-text">
-                    <span v-if="comment.replyNickname" class="reply-to">
-                      回复 @{{ comment.replyNickname }}：
-                    </span>
                     {{ comment.content }}
                   </p>
                   <div class="comment-actions-bar">
@@ -231,12 +238,17 @@
                   <div class="comment-content">
                     <div class="comment-header">
                       <span class="nickname">{{ child.nickname }}</span>
+                      <span class="comment-floor" v-if="child.floor">#{{ child.floor }}</span>
                       <span class="comment-time">{{ child.createTime }}</span>
                     </div>
+                    <QuoteBubble
+                      v-if="child.replyNickname && child.replyContent"
+                      :floor="''"
+                      :nickname="child.replyNickname"
+                      :content="child.replyContent"
+                      :max-length="60"
+                    />
                     <p class="comment-text">
-                      <span v-if="child.replyNickname" class="reply-to">
-                        回复 @{{ child.replyNickname }}：
-                      </span>
                       {{ child.content }}
                     </p>
                     <div class="comment-actions-bar">
@@ -324,6 +336,7 @@ import { Reading, ArrowLeft, ArrowRight, Collection, Close } from '@element-plus
 import AccessoryCard from '@/components/AccessoryCard.vue'
 import CompareBar from '@/components/CompareBar.vue'
 import BeforeAfterViewer from '@/components/BeforeAfterViewer.vue'
+import QuoteBubble from '@/components/QuoteBubble.vue'
 
 const GROUP_META = {
   appearance: { icon: '🎨', color: '#722ed1', desc: '产品整体外观、设计语言、做工细节' },
@@ -1191,39 +1204,6 @@ const cancelReply = () => {
   .comment-input-wrap {
     margin-bottom: 24px;
 
-    .reply-indicator {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 14px;
-      margin-bottom: 10px;
-      background: #ecf5ff;
-      border-radius: 6px;
-      border: 1px solid #d9ecff;
-
-      .reply-label {
-        font-size: 13px;
-        color: #606266;
-
-        em {
-          font-style: normal;
-          color: #409eff;
-          font-weight: 600;
-        }
-      }
-
-      .reply-cancel {
-        font-size: 16px;
-        color: #909399;
-        cursor: pointer;
-        transition: color 0.2s;
-
-        &:hover {
-          color: #f56c6c;
-        }
-      }
-    }
-
     .comment-actions {
       margin-top: 12px;
       text-align: right;
@@ -1259,13 +1239,22 @@ const cancelReply = () => {
     .comment-header {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       margin-bottom: 6px;
 
       .nickname {
         font-size: 14px;
         font-weight: 500;
         color: #1890ff;
+      }
+
+      .comment-floor {
+        font-size: 11px;
+        font-weight: 600;
+        color: #1890ff;
+        background: #e6f7ff;
+        padding: 1px 8px;
+        border-radius: 10px;
       }
 
       .comment-time {
@@ -1279,10 +1268,6 @@ const cancelReply = () => {
       line-height: 1.6;
       color: #333;
       margin-bottom: 8px;
-
-      .reply-to {
-        color: #1890ff;
-      }
     }
 
     .comment-actions-bar {
