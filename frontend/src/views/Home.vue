@@ -2,6 +2,8 @@
   <div class="home container" :class="{ 'has-compare-bar': !compareStore.isEmpty }">
     <div class="home-layout">
       <div class="main-content">
+        <CategoryQuickBar sortType="hot" />
+
         <div class="section-tabs">
           <el-radio-group v-model="activeTab" size="large" @change="handleTabChange">
             <el-radio-button label="latest">最新发布</el-radio-button>
@@ -35,21 +37,6 @@
 
       <aside class="sidebar">
         <div class="card">
-          <h3 class="sidebar-title">📂 分类导航</h3>
-          <div class="category-list">
-            <router-link
-              v-for="cat in categories"
-              :key="cat.id"
-              :to="`/category/${cat.id}`"
-              class="category-item"
-            >
-              <span class="cat-icon">{{ cat.icon }}</span>
-              <span class="cat-name">{{ cat.name }}</span>
-            </router-link>
-          </div>
-        </div>
-
-        <div class="card">
           <h3 class="sidebar-title">🔥 热门帖子</h3>
           <div class="hot-list" v-loading="hotLoading">
             <div v-for="(post, index) in hotPosts" :key="post.id" class="hot-item">
@@ -77,18 +64,18 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { getPostList, getHotPosts, getCategories } from '@/api'
+import { getPostList, getHotPosts } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
 import PostSkeleton from '@/components/PostSkeleton.vue'
 import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
 import CompareBar from '@/components/CompareBar.vue'
+import CategoryQuickBar from '@/components/CategoryQuickBar.vue'
 import { useCompareStore } from '@/store/compare'
 
 const compareStore = useCompareStore()
 const activeTab = ref('latest')
 const hotPosts = ref([])
-const categories = ref([])
 const hotLoading = ref(false)
 
 const fetchPosts = (params) => {
@@ -115,7 +102,6 @@ onMounted(() => {
   compareStore.syncFromStorage()
   infinite.loadMore()
   loadHotPosts()
-  loadCategories()
 })
 
 const loadHotPosts = async () => {
@@ -125,10 +111,6 @@ const loadHotPosts = async () => {
   } finally {
     hotLoading.value = false
   }
-}
-
-const loadCategories = async () => {
-  categories.value = await getCategories()
 }
 </script>
 
@@ -166,35 +148,6 @@ const loadCategories = async () => {
     font-weight: 600;
     margin-bottom: 16px;
     color: #333;
-  }
-
-  .category-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .category-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px;
-    border-radius: 8px;
-    background: #f5f7fa;
-    transition: all 0.2s;
-
-    &:hover {
-      background: #e6f7ff;
-      color: #1890ff;
-    }
-
-    .cat-icon {
-      font-size: 18px;
-    }
-
-    .cat-name {
-      font-size: 13px;
-    }
   }
 
   .hot-list {

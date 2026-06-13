@@ -3,6 +3,7 @@ package com.digital.community.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.digital.community.entity.Category;
 import com.digital.community.mapper.CategoryMapper;
+import com.digital.community.vo.CategoryVO;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -20,5 +21,9 @@ public class CategoryService {
                         .eq(Category::getDeleted, 0)
                         .orderByAsc(Category::getSort)
         );
+    }
+
+    public List<CategoryVO> listWithHotScore() {
+        return categoryMapper.selectCategoryWithHotScore();
     }
 }
