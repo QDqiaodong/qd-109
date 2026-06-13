@@ -30,6 +30,11 @@ const routes = [
     path: '/compare',
     name: 'Compare',
     component: () => import('@/views/ComparePanel.vue')
+  },
+  {
+    path: '/fault-rank',
+    name: 'FaultRank',
+    component: () => import('@/views/FaultRank.vue')
   }
 ]
 

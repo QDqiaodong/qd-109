@@ -6,6 +6,8 @@ import com.digital.community.context.UserContext;
 import com.digital.community.dto.PostDTO;
 import com.digital.community.exception.UnauthorizedException;
 import com.digital.community.service.PostService;
+import com.digital.community.vo.FaultThemeSuggestionVO;
+import com.digital.community.vo.ModelFaultStatsVO;
 import com.digital.community.vo.PostVO;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -66,5 +68,19 @@ public class PostController {
             throw new UnauthorizedException("请先登录后再发布帖子");
         }
         return Result.success(postService.create(userId, dto));
+    }
+
+    @GetMapping("/fault-suggestions")
+    public Result<FaultThemeSuggestionVO> faultSuggestions(
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) Long categoryId) {
+        return Result.success(postService.getFaultSuggestions(model, categoryId));
+    }
+
+    @GetMapping("/fault-hot-models")
+    public Result<List<ModelFaultStatsVO>> faultHotModels(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        return Result.success(postService.getHotFaultModels(categoryId, limit));
     }
 }

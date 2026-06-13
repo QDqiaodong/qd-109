@@ -363,4 +363,300 @@ public class PostService {
             // ignore calibration error
         }
     }
+
+    private static final Map<String, FaultThemeDefinition> FAULT_THEME_DEFINITIONS = Map.ofEntries(
+            Map.entry("disconnection", new FaultThemeDefinition("disconnection", "掉连/断连问题", "📡",
+                    List.of("断连", "掉连", "掉线", "断开", "连接中断", "经常断", "频繁断", "时断时续", "不稳定", "连不上", "连接失败", "自动断开"))),
+            Map.entry("noise", new FaultThemeDefinition("noise", "底噪/杂音问题", "🔊",
+                    List.of("底噪", "杂音", "滋滋", "电流声", "噪声", "噪音", "爆破音", "破音", "卡顿声", "断断续续的声音", "沙沙声"))),
+            Map.entry("compatibility", new FaultThemeDefinition("compatibility", "兼容异常", "⚠️",
+                    List.of("不兼容", "兼容", "识别不了", "无法识别", "读不出来", "检测不到", "不支持", "不匹配", "适配", "驱动", "兼容性", "认不出"))),
+            Map.entry("power", new FaultThemeDefinition("power", "供电不足/充电异常", "🔋",
+                    List.of("供电不足", "充电慢", "充不进", "无法充电", "不充电", "掉电", "续航差", "电量", "充电异常", "断电", "发热", "发烫", "功率"))),
+            Map.entry("sound", new FaultThemeDefinition("sound", "音质/无声问题", "🎵",
+                    List.of("没声音", "无声", "没声", "音质差", "声音小", "声音异常", "单声道", "一边没声", "左右声道", "音质", "音量", "麦克风", "麦没声"))),
+            Map.entry("lag", new FaultThemeDefinition("lag", "延迟/卡顿问题", "⏱️",
+                    List.of("延迟", "卡顿", "慢", "反应慢", "不同步", "音画不同步", "滞后", "卡", "延迟高", "响应慢"))),
+            Map.entry("bluetooth", new FaultThemeDefinition("bluetooth", "蓝牙连接问题", "📶",
+                    List.of("蓝牙", "配对", "搜不到", "搜索不到", "蓝牙连", "配对失败", "无法配对", "蓝牙搜"))),
+            Map.entry("keyboard", new FaultThemeDefinition("keyboard", "按键/输入问题", "⌨️",
+                    List.of("按键", "失灵", "连击", "双击", "按不了", "没反应", "键位", "卡键", "臭轴", "键盘", "摇杆", "漂移"))),
+            Map.entry("display", new FaultThemeDefinition("display", "显示/画面问题", "🖥️",
+                    List.of("黑屏", "花屏", "闪屏", "显示异常", "画面", "屏幕", "闪烁", "显示不出来", "无显示", "模糊"))),
+            Map.entry("transfer", new FaultThemeDefinition("transfer", "传输/读写问题", "💾",
+                    List.of("传输慢", "读写慢", "速度慢", "拷贝慢", "写入慢", "读取慢", "传文件", "传输失败", "丢数据", "丢包")))
+    );
+
+    private static final Map<String, String> THEME_TROUBLESHOOTING_TIPS = Map.ofEntries(
+            Map.entry("disconnection", "排查建议：1. 尝试更换数据线/接口；2. 检查设备蓝牙/Wi-Fi模块是否正常；3. 关闭附近干扰源（微波炉、无线设备）；4. 更新设备固件和驱动"),
+            Map.entry("noise", "排查建议：1. 更换高品质屏蔽线；2. 检查接地是否良好；3. 避免与大功率设备共用插座；4. 调整音频采样率和缓冲设置"),
+            Map.entry("compatibility", "排查建议：1. 到官网下载最新驱动；2. 查阅兼容性列表确认是否支持当前系统；3. 尝试更换USB端口（USB 2.0/3.0切换）；4. 更新系统至最新版本"),
+            Map.entry("power", "排查建议：1. 更换原装充电器和数据线；2. 清洁充电口灰尘；3. 查看是否开启了省电模式；4. 确认充电协议是否匹配"),
+            Map.entry("sound", "排查建议：1. 检查音量设置和音频输出设备；2. 重新插拔音频线；3. 更新声卡驱动；4. 在其他设备上测试确认是否为硬件问题"),
+            Map.entry("lag", "排查建议：1. 关闭后台占用带宽的程序；2. 检查CPU占用率；3. 将接收设备靠近发射器；4. 尝试切换USB接口到主板直连口"),
+            Map.entry("bluetooth", "排查建议：1. 删除旧配对后重新配对；2. 更新蓝牙驱动；3. 检查蓝牙设备电量；4. 避免2.4G Wi-Fi与蓝牙同频干扰"),
+            Map.entry("keyboard", "排查建议：1. 清洁按键下灰尘杂物；2. 更换数据线或无线接收器；3. 使用按键检测软件测试；4. 如在保修期内可申请售后"),
+            Map.entry("display", "排查建议：1. 更换视频线；2. 更新显卡驱动；3. 检查显示器输入源设置；4. 降低分辨率/刷新率测试"),
+            Map.entry("transfer", "排查建议：1. 确认接口版本（USB 3.0/3.1等）；2. 检查磁盘健康状态；3. 更换高质量数据线；4. 避免同时进行多个大文件传输")
+    );
+
+    private static class FaultThemeDefinition {
+        final String key;
+        final String name;
+        final String icon;
+        final List<String> keywords;
+
+        FaultThemeDefinition(String key, String name, String icon, List<String> keywords) {
+            this.key = key;
+            this.name = name;
+            this.icon = icon;
+            this.keywords = keywords;
+        }
+    }
+
+    public FaultThemeSuggestionVO getFaultSuggestions(String modelKeyword, Long categoryId) {
+        FaultThemeSuggestionVO vo = new FaultThemeSuggestionVO();
+        vo.setInputModel(modelKeyword);
+
+        List<PostVO> posts;
+        if (modelKeyword != null && !modelKeyword.isBlank()) {
+            posts = postMapper.selectHelpPostsByModelKeyword(modelKeyword, categoryId);
+        } else {
+            posts = postMapper.selectAllHelpPosts(categoryId);
+        }
+
+        List<ModelFaultStatsVO> matchedModels = aggregateModelFaultStats(posts);
+
+        if (modelKeyword != null && !modelKeyword.isBlank()) {
+            String lowerKeyword = modelKeyword.toLowerCase();
+            matchedModels = matchedModels.stream()
+                    .filter(m -> m.getModel().toLowerCase().contains(lowerKeyword))
+                    .collect(Collectors.toList());
+        }
+
+        matchedModels = matchedModels.stream()
+                .sorted((a, b) -> b.getTotalHelpPosts() - a.getTotalHelpPosts())
+                .limit(10)
+                .collect(Collectors.toList());
+
+        vo.setMatchedModels(matchedModels);
+
+        Map<String, Integer> themeGlobalCounts = new java.util.HashMap<>();
+        Map<String, List<String>> themeSymptomsMap = new java.util.HashMap<>();
+        int totalMatchedPosts = 0;
+
+        for (PostVO post : posts) {
+            Map<String, String> faultInfo = post.getFaultInfo();
+            if (faultInfo == null || faultInfo.isEmpty()) continue;
+
+            String deviceModel = faultInfo.getOrDefault("deviceModel", "");
+            String accessoryModel = faultInfo.getOrDefault("accessoryModel", "");
+            if (modelKeyword != null && !modelKeyword.isBlank()) {
+                String lower = modelKeyword.toLowerCase();
+                boolean match = deviceModel.toLowerCase().contains(lower)
+                        || accessoryModel.toLowerCase().contains(lower)
+                        || (post.getTitle() != null && post.getTitle().toLowerCase().contains(lower))
+                        || (post.getContent() != null && post.getContent().toLowerCase().contains(lower));
+                if (!match) continue;
+            }
+
+            String symptoms = faultInfo.getOrDefault("symptoms", "") + " " +
+                    (post.getTitle() != null ? post.getTitle() : "") + " " +
+                    (post.getContent() != null ? post.getContent() : "");
+            symptoms = symptoms.toLowerCase();
+
+            Set<String> matchedThemes = new java.util.HashSet<>();
+            for (Map.Entry<String, FaultThemeDefinition> entry : FAULT_THEME_DEFINITIONS.entrySet()) {
+                for (String kw : entry.getValue().keywords) {
+                    if (symptoms.contains(kw.toLowerCase())) {
+                        matchedThemes.add(entry.getKey());
+                        break;
+                    }
+                }
+            }
+
+            if (!matchedThemes.isEmpty()) {
+                totalMatchedPosts++;
+                for (String theme : matchedThemes) {
+                    themeGlobalCounts.merge(theme, 1, Integer::sum);
+                    String symptomText = faultInfo.getOrDefault("symptoms", "");
+                    if (!symptomText.isBlank()) {
+                        themeSymptomsMap.computeIfAbsent(theme, k -> new java.util.ArrayList<>())
+                                .add(symptomText.length() > 80 ? symptomText.substring(0, 80) + "..." : symptomText);
+                    }
+                }
+            }
+        }
+
+        final int finalTotal = totalMatchedPosts;
+        List<FaultThemeVO> commonThemes = themeGlobalCounts.entrySet().stream()
+                .map(e -> {
+                    FaultThemeVO themeVO = new FaultThemeVO();
+                    FaultThemeDefinition def = FAULT_THEME_DEFINITIONS.get(e.getKey());
+                    themeVO.setThemeKey(def.key);
+                    themeVO.setThemeName(def.name);
+                    themeVO.setThemeIcon(def.icon);
+                    themeVO.setCount(e.getValue());
+                    themeVO.setPercentage(finalTotal > 0 ? Math.round(e.getValue() * 1000.0 / finalTotal) / 10.0 : 0);
+                    List<String> samples = themeSymptomsMap.get(e.getKey());
+                    if (samples != null && !samples.isEmpty()) {
+                        themeVO.setSampleSymptoms(samples.get(0));
+                    }
+                    return themeVO;
+                })
+                .sorted((a, b) -> b.getCount() - a.getCount())
+                .limit(8)
+                .collect(Collectors.toList());
+        vo.setCommonThemes(commonThemes);
+
+        StringBuilder tips = new StringBuilder();
+        if (commonThemes.size() > 0) {
+            tips.append("基于历史求助数据分析，该型号常见问题及建议：\n");
+            for (int i = 0; i < Math.min(commonThemes.size(), 3); i++) {
+                FaultThemeVO theme = commonThemes.get(i);
+                String tip = THEME_TROUBLESHOOTING_TIPS.get(theme.getThemeKey());
+                if (tip != null) {
+                    tips.append(i + 1).append(". ").append(theme.getThemeIcon()).append(" ")
+                            .append(theme.getThemeName()).append("（占比").append(theme.getPercentage())
+                            .append("%）：\n   ").append(tip).append("\n");
+                }
+            }
+        } else {
+            tips.append("暂未找到该型号的历史故障数据，建议详细描述您的问题，社区会尽力帮您解决。");
+        }
+        vo.setTroubleshootingTips(tips.toString());
+
+        return vo;
+    }
+
+    public List<ModelFaultStatsVO> getHotFaultModels(Long categoryId, Integer limit) {
+        List<PostVO> posts = postMapper.selectAllHelpPosts(categoryId);
+        List<ModelFaultStatsVO> models = aggregateModelFaultStats(posts);
+        return models.stream()
+                .sorted((a, b) -> b.getTotalHelpPosts() - a.getTotalHelpPosts())
+                .limit(limit != null ? limit : 20)
+                .collect(Collectors.toList());
+    }
+
+    private List<ModelFaultStatsVO> aggregateModelFaultStats(List<PostVO> posts) {
+        Map<String, ModelAccumulator> modelMap = new java.util.LinkedHashMap<>();
+
+        for (PostVO post : posts) {
+            Map<String, String> faultInfo = post.getFaultInfo();
+            if (faultInfo == null || faultInfo.isEmpty()) continue;
+
+            String deviceModel = (faultInfo.getOrDefault("deviceModel", "")).trim();
+            String accessoryModel = (faultInfo.getOrDefault("accessoryModel", "")).trim();
+            String symptoms = faultInfo.getOrDefault("symptoms", "") + " " +
+                    (post.getTitle() != null ? post.getTitle() : "") + " " +
+                    (post.getContent() != null ? post.getContent() : "");
+            symptoms = symptoms.toLowerCase();
+
+            if (!deviceModel.isBlank()) {
+                accumulateModel(modelMap, deviceModel, "deviceModel", post, symptoms);
+            }
+            if (!accessoryModel.isBlank()) {
+                accumulateModel(modelMap, accessoryModel, "accessoryModel", post, symptoms);
+            }
+        }
+
+        return modelMap.entrySet().stream()
+                .map(e -> {
+                    ModelFaultStatsVO stats = new ModelFaultStatsVO();
+                    ModelAccumulator acc = e.getValue();
+                    stats.setModel(e.getKey());
+                    stats.setModelType(acc.modelType);
+                    stats.setCategoryId(acc.categoryId);
+                    stats.setCategoryName(acc.categoryName);
+                    stats.setTotalHelpPosts(acc.totalHelpPosts);
+                    stats.setTotalComments(acc.totalComments);
+                    stats.setTotalViews(acc.totalViews);
+
+                    int themeTotal = acc.themeCounts.values().stream().mapToInt(Integer::intValue).sum();
+                    List<FaultThemeVO> topThemes = acc.themeCounts.entrySet().stream()
+                            .map(te -> {
+                                FaultThemeVO themeVO = new FaultThemeVO();
+                                FaultThemeDefinition def = FAULT_THEME_DEFINITIONS.get(te.getKey());
+                                if (def == null) return null;
+                                themeVO.setThemeKey(def.key);
+                                themeVO.setThemeName(def.name);
+                                themeVO.setThemeIcon(def.icon);
+                                themeVO.setCount(te.getValue());
+                                themeVO.setPercentage(themeTotal > 0 ? Math.round(te.getValue() * 1000.0 / themeTotal) / 10.0 : 0);
+                                List<String> samples = acc.themeSymptoms.get(te.getKey());
+                                if (samples != null && !samples.isEmpty()) {
+                                    themeVO.setSampleSymptoms(samples.get(0));
+                                }
+                                return themeVO;
+                            })
+                            .filter(t -> t != null)
+                            .sorted((a, b) -> b.getCount() - a.getCount())
+                            .limit(5)
+                            .collect(Collectors.toList());
+                    stats.setTopThemes(topThemes);
+
+                    stats.setRelatedPosts(acc.relatedPosts.stream()
+                            .sorted((a, b) -> b.getCommentCount() - a.getCommentCount())
+                            .limit(5)
+                            .collect(Collectors.toList()));
+
+                    return stats;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private void accumulateModel(Map<String, ModelAccumulator> modelMap, String model,
+                                  String modelType, PostVO post, String symptoms) {
+        String normalizedModel = normalizeModelName(model);
+        if (normalizedModel.isBlank()) return;
+
+        ModelAccumulator acc = modelMap.computeIfAbsent(normalizedModel, k -> new ModelAccumulator());
+        if (acc.modelType == null) {
+            acc.modelType = modelType;
+            acc.categoryId = post.getCategoryId();
+            acc.categoryName = post.getCategoryName();
+        }
+        acc.totalHelpPosts++;
+        acc.totalComments += post.getCommentCount() != null ? post.getCommentCount() : 0;
+        acc.totalViews += post.getViewCount() != null ? post.getViewCount() : 0;
+        acc.relatedPosts.add(post);
+
+        Set<String> matchedThemes = new java.util.HashSet<>();
+        for (Map.Entry<String, FaultThemeDefinition> entry : FAULT_THEME_DEFINITIONS.entrySet()) {
+            for (String kw : entry.getValue().keywords) {
+                if (symptoms.contains(kw.toLowerCase())) {
+                    matchedThemes.add(entry.getKey());
+                    break;
+                }
+            }
+        }
+        for (String theme : matchedThemes) {
+            acc.themeCounts.merge(theme, 1, Integer::sum);
+            String sample = post.getFaultInfo().getOrDefault("symptoms", "");
+            if (!sample.isBlank()) {
+                acc.themeSymptoms.computeIfAbsent(theme, k -> new java.util.ArrayList<>())
+                        .add(sample.length() > 80 ? sample.substring(0, 80) + "..." : sample);
+            }
+        }
+    }
+
+    private String normalizeModelName(String model) {
+        if (model == null) return "";
+        String s = model.trim();
+        s = s.replaceAll("\\s+", " ");
+        s = s.replaceAll("[\\(\\)（）【】\\[\\]]", "");
+        return s.length() > 50 ? s.substring(0, 50) : s;
+    }
+
+    private static class ModelAccumulator {
+        String modelType;
+        Long categoryId;
+        String categoryName;
+        int totalHelpPosts;
+        int totalComments;
+        int totalViews;
+        final Map<String, Integer> themeCounts = new java.util.HashMap<>();
+        final Map<String, List<String>> themeSymptoms = new java.util.HashMap<>();
+        final List<PostVO> relatedPosts = new java.util.ArrayList<>();
+    }
 }

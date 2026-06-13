@@ -19,4 +19,8 @@ public interface PostMapper extends BaseMapper<Post> {
     int incrementCommentCount(@Param("id") Long id);
 
     int countCommentsByPostId(@Param("postId") Long postId);
+
+    List<PostVO> selectHelpPostsByModelKeyword(@Param("keyword") String keyword, @Param("categoryId") Long categoryId);
+
+    List<PostVO> selectAllHelpPosts(@Param("categoryId") Long categoryId);
 }

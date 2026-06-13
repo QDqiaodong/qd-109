@@ -73,6 +73,9 @@
       </div>
 
       <div class="header-right">
+        <router-link to="/fault-rank" class="btn-fault">
+          <span>📊 故障榜</span>
+        </router-link>
         <router-link to="/compare" class="btn-compare" :class="{ 'has-items': !compareStore.isEmpty }">
           <span>⚖️ 对照</span>
           <span v-if="!compareStore.isEmpty" class="compare-badge">{{ compareStore.count }}</span>
@@ -515,6 +518,23 @@ const handleRegister = async () => {
     display: flex;
     align-items: center;
     gap: 12px;
+
+    .btn-fault {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #666;
+      background: #f5f7fa;
+      transition: all 0.2s;
+
+      &:hover {
+        background: linear-gradient(135deg, #fff5e6, #ffedd5);
+        color: #d48806;
+      }
+    }
 
     .btn-compare {
       position: relative;

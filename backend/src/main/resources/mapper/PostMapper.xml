@@ -86,4 +86,38 @@
         SELECT COUNT(*) FROM t_comment WHERE post_id = #{postId} AND deleted = 0
     </select>
 
+    <select id="selectHelpPostsByModelKeyword" resultMap="PostVOMap">
+        SELECT p.*, u.nickname, u.avatar, c.name as category_name
+        FROM t_post p
+        LEFT JOIN t_user u ON p.user_id = u.id
+        LEFT JOIN t_category c ON p.category_id = c.id
+        WHERE p.deleted = 0 AND p.status = 1 AND p.type = 2
+          AND p.fault_info IS NOT NULL AND p.fault_info != ''
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                JSON_UNQUOTE(JSON_EXTRACT(p.fault_info, '$.deviceModel')) LIKE CONCAT('%', #{keyword}, '%')
+                OR JSON_UNQUOTE(JSON_EXTRACT(p.fault_info, '$.accessoryModel')) LIKE CONCAT('%', #{keyword}, '%')
+                OR p.title LIKE CONCAT('%', #{keyword}, '%')
+                OR p.content LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY p.create_time DESC
+    </select>
+
+    <select id="selectAllHelpPosts" resultMap="PostVOMap">
+        SELECT p.*, u.nickname, u.avatar, c.name as category_name
+        FROM t_post p
+        LEFT JOIN t_user u ON p.user_id = u.id
+        LEFT JOIN t_category c ON p.category_id = c.id
+        WHERE p.deleted = 0 AND p.status = 1 AND p.type = 2
+          AND p.fault_info IS NOT NULL AND p.fault_info != ''
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+        ORDER BY p.create_time DESC
+    </select>
+
 </mapper>

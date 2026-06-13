@@ -36,14 +36,14 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     );
 
     private static final List<RequiredFieldsSeed> REQUIRED_FIELDS_SEEDS = List.of(
-            new RequiredFieldsSeed(1L, "[\"deviceModel\",\"connectionType\",\"symptoms\"]"),
-            new RequiredFieldsSeed(2L, "[\"deviceModel\",\"connectionType\",\"symptoms\"]"),
-            new RequiredFieldsSeed(3L, "[\"deviceModel\",\"connectionType\",\"symptoms\"]"),
-            new RequiredFieldsSeed(4L, "[\"deviceModel\",\"connectionType\",\"symptoms\"]"),
-            new RequiredFieldsSeed(5L, "[\"deviceModel\",\"symptoms\"]"),
-            new RequiredFieldsSeed(6L, "[\"deviceModel\",\"connectionType\",\"symptoms\"]"),
-            new RequiredFieldsSeed(7L, "[\"deviceModel\",\"connectionType\",\"symptoms\"]"),
-            new RequiredFieldsSeed(8L, "[\"deviceModel\",\"platform\",\"environment\",\"symptoms\"]")
+            new RequiredFieldsSeed(1L, "[\"deviceModel\",\"accessoryModel\",\"symptoms\"]"),
+            new RequiredFieldsSeed(2L, "[\"deviceModel\",\"accessoryModel\",\"symptoms\"]"),
+            new RequiredFieldsSeed(3L, "[\"deviceModel\",\"accessoryModel\",\"connectionType\",\"symptoms\"]"),
+            new RequiredFieldsSeed(4L, "[\"deviceModel\",\"accessoryModel\",\"symptoms\"]"),
+            new RequiredFieldsSeed(5L, "[\"deviceModel\",\"accessoryModel\",\"symptoms\"]"),
+            new RequiredFieldsSeed(6L, "[\"deviceModel\",\"accessoryModel\",\"connectionType\",\"symptoms\"]"),
+            new RequiredFieldsSeed(7L, "[\"deviceModel\",\"accessoryModel\",\"symptoms\"]"),
+            new RequiredFieldsSeed(8L, "[\"deviceModel\",\"accessoryModel\",\"connectionType\",\"platform\",\"environment\",\"symptoms\"]")
     );
 
     @Resource

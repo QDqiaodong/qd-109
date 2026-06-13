@@ -28,6 +28,15 @@
           />
         </el-form-item>
 
+        <el-form-item v-if="formData.deviceModel || formData.accessoryModel">
+          <div style="width: 100%; margin-left: 0;">
+            <ModelFaultInsight
+              :model="formData.deviceModel || formData.accessoryModel"
+              :category-id="categoryId"
+            />
+          </div>
+        </el-form-item>
+
         <el-form-item label="连接方式" :required="isRequired('connectionType')" v-if="isFieldVisible('connectionType')">
           <el-select
             v-model="formData.connectionType"
@@ -115,6 +124,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { InfoFilled } from '@element-plus/icons-vue'
+import ModelFaultInsight from './ModelFaultInsight.vue'
 
 const FIELD_LABEL_MAP = {
   deviceModel: '设备型号',
