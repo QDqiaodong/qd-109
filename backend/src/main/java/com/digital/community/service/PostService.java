@@ -23,6 +23,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -32,8 +33,15 @@ public class PostService {
     private static final String LATEST_POSTS_KEY = "post:latest";
     private static final String HOT_POSTS_KEY = "post:hot";
     private static final String POST_VIEW_KEY_PREFIX = "post:view:";
+    private static final String LATEST_PAGE_KEY_PREFIX = "post:page:latest:";
     private static final long CACHE_EXPIRE = 30;
     private static final long VIEW_COUNT_EXPIRE_MINUTES = 30;
+
+    private static final long PAGE_1_EXPIRE_MINUTES = 2;
+    private static final long PAGE_2_EXPIRE_MINUTES = 5;
+    private static final long PAGE_3_EXPIRE_MINUTES = 10;
+    private static final long PAGE_N_EXPIRE_MINUTES = 20;
+    private static final long PAGE_MAX_EXPIRE_MINUTES = 60;
 
     private static final Map<String, String> FIELD_LABELS = Map.of(
             "deviceModel", "设备型号",
@@ -54,9 +62,74 @@ public class PostService {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
+    @SuppressWarnings("unchecked")
     public Page<PostVO> page(Integer pageNum, Integer pageSize, Long categoryId, Integer type, String sort) {
+        boolean isLatestSort = sort == null || "latest".equals(sort);
+
+        if (isLatestSort) {
+            String cacheKey = buildLatestPageCacheKey(pageNum, pageSize, categoryId, type);
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                try {
+                    return (Page<PostVO>) cached;
+                } catch (Exception e) {
+                    redisTemplate.delete(cacheKey);
+                }
+            }
+        }
+
         Page<PostVO> page = new Page<>(pageNum, pageSize);
-        return postMapper.selectPostPage(page, categoryId, type, null, sort);
+        Page<PostVO> result = postMapper.selectPostPage(page, categoryId, type, null, sort);
+
+        if (isLatestSort) {
+            String cacheKey = buildLatestPageCacheKey(pageNum, pageSize, categoryId, type);
+            long expireMinutes = calculatePageExpire(pageNum);
+            try {
+                Page<PostVO> cacheCopy = new Page<>(pageNum, pageSize);
+                cacheCopy.setRecords(result.getRecords());
+                cacheCopy.setTotal(result.getTotal());
+                redisTemplate.opsForValue().set(cacheKey, cacheCopy, expireMinutes, TimeUnit.MINUTES);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return result;
+    }
+
+    private String buildLatestPageCacheKey(Integer pageNum, Integer pageSize, Long categoryId, Integer type) {
+        StringBuilder sb = new StringBuilder(LATEST_PAGE_KEY_PREFIX);
+        sb.append("p:").append(pageNum).append(":").append(pageSize);
+        if (categoryId != null) {
+            sb.append(":c:").append(categoryId);
+        }
+        if (type != null) {
+            sb.append(":t:").append(type);
+        }
+        return sb.toString();
+    }
+
+    private long calculatePageExpire(Integer pageNum) {
+        if (pageNum <= 1) {
+            return PAGE_1_EXPIRE_MINUTES;
+        } else if (pageNum == 2) {
+            return PAGE_2_EXPIRE_MINUTES;
+        } else if (pageNum == 3) {
+            return PAGE_3_EXPIRE_MINUTES;
+        } else {
+            long extra = (long) (pageNum - 3) * 5L;
+            long expire = PAGE_N_EXPIRE_MINUTES + extra;
+            return Math.min(expire, PAGE_MAX_EXPIRE_MINUTES);
+        }
+    }
+
+    private void invalidateLatestPageCache() {
+        try {
+            Set<String> headKeys = redisTemplate.keys(LATEST_PAGE_KEY_PREFIX + "p:1:*");
+            if (headKeys != null && !headKeys.isEmpty()) {
+                redisTemplate.delete(headKeys);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     public Page<PostVO> search(Integer pageNum, Integer pageSize, String keyword, Long categoryId, Integer type) {
@@ -210,6 +283,7 @@ public class PostService {
 
         redisTemplate.delete(LATEST_POSTS_KEY);
         redisTemplate.delete(HOT_POSTS_KEY);
+        invalidateLatestPageCache();
 
         return post.getId();
     }
