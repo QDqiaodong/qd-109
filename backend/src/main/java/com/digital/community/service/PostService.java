@@ -10,7 +10,10 @@ import com.digital.community.entity.Post;
 import com.digital.community.mapper.CategoryMapper;
 import com.digital.community.mapper.PostMapper;
 import com.digital.community.vo.AccessoryCardVO;
+import com.digital.community.vo.FaultThemeSuggestionVO;
+import com.digital.community.vo.FaultThemeVO;
 import com.digital.community.vo.ImageGroupVO;
+import com.digital.community.vo.ModelFaultStatsVO;
 import com.digital.community.vo.PostVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
@@ -497,7 +500,7 @@ public class PostService {
                     themeVO.setThemeName(def.name);
                     themeVO.setThemeIcon(def.icon);
                     themeVO.setCount(e.getValue());
-                    themeVO.setPercentage(finalTotal > 0 ? Math.round(e.getValue() * 1000.0 / finalTotal) / 10.0 : 0);
+                    themeVO.setPercentage(finalTotal > 0 ? Math.round(e.getValue() * 1000.0 / finalTotal) / 10.0 : 0.0);
                     List<String> samples = themeSymptomsMap.get(e.getKey());
                     if (samples != null && !samples.isEmpty()) {
                         themeVO.setSampleSymptoms(samples.get(0));
@@ -582,7 +585,7 @@ public class PostService {
                                 themeVO.setThemeName(def.name);
                                 themeVO.setThemeIcon(def.icon);
                                 themeVO.setCount(te.getValue());
-                                themeVO.setPercentage(themeTotal > 0 ? Math.round(te.getValue() * 1000.0 / themeTotal) / 10.0 : 0);
+                                themeVO.setPercentage(themeTotal > 0 ? Math.round(te.getValue() * 1000.0 / themeTotal) / 10.0 : 0.0);
                                 List<String> samples = acc.themeSymptoms.get(te.getKey());
                                 if (samples != null && !samples.isEmpty()) {
                                     themeVO.setSampleSymptoms(samples.get(0));

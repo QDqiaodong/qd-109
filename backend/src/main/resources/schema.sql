@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS t_category (
     name VARCHAR(50) NOT NULL,
     icon VARCHAR(255),
     sort INT DEFAULT 0,
+    required_fields TEXT COMMENT '求助帖必填字段JSON数组',
     deleted TINYINT DEFAULT 0,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS t_post (
     images TEXT,
     image_groups TEXT COMMENT '图片分组JSON数组：外观/接口/上机效果/桌搭全景',
     accessory_cards TEXT COMMENT '配件参数卡片JSON数组',
+    fault_info TEXT COMMENT '求助帖故障信息JSON',
     type TINYINT DEFAULT 1 COMMENT '1:体验分享 2:问题求助',
     view_count INT DEFAULT 0,
     like_count INT DEFAULT 0,
