@@ -12,11 +12,14 @@ public class CommentVO {
     private String nickname;
     private String avatar;
     private Long parentId;
+    private Long rootId;
     private Long replyUserId;
     private String replyNickname;
     private String replyContent;
     private Integer floor;
     private String content;
+    private Integer depth;
+    private Integer isCollapsed;
     private LocalDateTime createTime;
     private List<CommentVO> children;
 }

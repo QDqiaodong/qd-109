@@ -214,6 +214,8 @@
                   <div class="comment-header">
                     <span class="nickname">{{ comment.nickname }}</span>
                     <span class="comment-floor" v-if="comment.floor">#{{ comment.floor }}</span>
+                    <span class="comment-depth" v-if="comment.depth && comment.depth > 1">L{{ comment.depth }}</span>
+                    <span class="comment-collapsed" v-if="comment.isCollapsed">已收束</span>
                     <span class="comment-time">{{ comment.createTime }}</span>
                   </div>
                   <QuoteBubble
@@ -239,6 +241,8 @@
                     <div class="comment-header">
                       <span class="nickname">{{ child.nickname }}</span>
                       <span class="comment-floor" v-if="child.floor">#{{ child.floor }}</span>
+                      <span class="comment-depth" v-if="child.depth && child.depth > 1">L{{ child.depth }}</span>
+                      <span class="comment-collapsed" v-if="child.isCollapsed">已收束</span>
                       <span class="comment-time">{{ child.createTime }}</span>
                     </div>
                     <QuoteBubble
@@ -635,7 +639,7 @@ const submitComment = async () => {
       content: commentContent.value
     }
     if (replyingTo.value) {
-      data.parentId = replyingTo.value.parentId || replyingTo.value.id
+      data.parentId = replyingTo.value.id
       data.replyUserId = replyingTo.value.userId
     }
     await createComment(data)
@@ -1253,6 +1257,24 @@ const cancelReply = () => {
         font-weight: 600;
         color: #1890ff;
         background: #e6f7ff;
+        padding: 1px 8px;
+        border-radius: 10px;
+      }
+
+      .comment-depth {
+        font-size: 11px;
+        font-weight: 600;
+        color: #722ed1;
+        background: #f9f0ff;
+        padding: 1px 8px;
+        border-radius: 10px;
+      }
+
+      .comment-collapsed {
+        font-size: 11px;
+        font-weight: 600;
+        color: #fa8c16;
+        background: #fff7e6;
         padding: 1px 8px;
         border-radius: 10px;
       }

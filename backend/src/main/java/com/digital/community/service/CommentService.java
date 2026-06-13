@@ -22,6 +22,7 @@ public class CommentService {
 
     private static final String COMMENT_SUBMIT_LOCK_PREFIX = "comment:submit:";
     private static final long COMMENT_SUBMIT_LOCK_SECONDS = 5;
+    private static final int MAX_COMMENT_DEPTH = 3;
 
     @Resource
     private CommentMapper commentMapper;
@@ -118,6 +119,11 @@ public class CommentService {
         }
 
         try {
+            Long finalParentId = dto.getParentId();
+            Long rootId = null;
+            int depth = 1;
+            int isCollapsed = 0;
+
             if (dto.getParentId() != null) {
                 Comment parentComment = commentMapper.selectById(dto.getParentId());
                 if (parentComment == null || parentComment.getDeleted() == 1) {
@@ -126,15 +132,41 @@ public class CommentService {
                 if (!parentComment.getPostId().equals(dto.getPostId())) {
                     throw new IllegalArgumentException("回复的评论不属于当前帖子");
                 }
+
+                int parentDepth = parentComment.getDepth() != null ? parentComment.getDepth() : 1;
+                int newDepth = parentDepth + 1;
+
+                if (newDepth > MAX_COMMENT_DEPTH) {
+                    rootId = parentComment.getRootId() != null ? parentComment.getRootId() : parentComment.getId();
+                    finalParentId = rootId;
+                    depth = 2;
+                    isCollapsed = 1;
+                } else {
+                    rootId = parentComment.getRootId() != null ? parentComment.getRootId() : parentComment.getId();
+                    if (parentComment.getParentId() == null) {
+                        rootId = parentComment.getId();
+                    }
+                    finalParentId = dto.getParentId();
+                    depth = newDepth;
+                    isCollapsed = 0;
+                }
             }
 
             Comment comment = new Comment();
             comment.setPostId(dto.getPostId());
             comment.setUserId(userId);
-            comment.setParentId(dto.getParentId());
+            comment.setParentId(finalParentId);
+            comment.setRootId(rootId);
             comment.setReplyUserId(dto.getReplyUserId());
             comment.setContent(dto.getContent());
+            comment.setDepth(depth);
+            comment.setIsCollapsed(isCollapsed);
             commentMapper.insert(comment);
+
+            if (rootId == null) {
+                comment.setRootId(comment.getId());
+                commentMapper.updateById(comment);
+            }
 
             postService.incrementCommentCount(dto.getPostId());
 

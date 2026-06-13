@@ -9,10 +9,13 @@
         <result column="nickname" property="nickname"/>
         <result column="avatar" property="avatar"/>
         <result column="parent_id" property="parentId"/>
+        <result column="root_id" property="rootId"/>
         <result column="reply_user_id" property="replyUserId"/>
         <result column="reply_nickname" property="replyNickname"/>
         <result column="reply_content" property="replyContent"/>
         <result column="content" property="content"/>
+        <result column="depth" property="depth"/>
+        <result column="is_collapsed" property="isCollapsed"/>
         <result column="create_time" property="createTime"/>
     </resultMap>
 

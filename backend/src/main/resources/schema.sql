@@ -54,14 +54,18 @@ CREATE TABLE IF NOT EXISTS t_comment (
     post_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     parent_id BIGINT,
+    root_id BIGINT COMMENT '根评论ID（主评论）',
     reply_user_id BIGINT,
     content TEXT NOT NULL,
+    depth INT DEFAULT 1 COMMENT '评论深度，1为主评论，2为直接回复，以此类推',
+    is_collapsed TINYINT DEFAULT 0 COMMENT '是否因深度超限被自动收束 0:否 1:是',
     deleted TINYINT DEFAULT 0,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_post_id (post_id),
     INDEX idx_user_id (user_id),
-    INDEX idx_parent_id (parent_id)
+    INDEX idx_parent_id (parent_id),
+    INDEX idx_root_id (root_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO t_category (name, icon, sort) VALUES

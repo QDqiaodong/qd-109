@@ -14,8 +14,11 @@ public class Comment {
     private Long postId;
     private Long userId;
     private Long parentId;
+    private Long rootId;
     private Long replyUserId;
     private String content;
+    private Integer depth;
+    private Integer isCollapsed;
     private Integer deleted;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

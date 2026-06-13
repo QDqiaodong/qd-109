@@ -20,6 +20,9 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     private static final String ACCESSORY_CARDS_COLUMN = "accessory_cards";
     private static final String FAULT_INFO_COLUMN = "fault_info";
     private static final String REQUIRED_FIELDS_COLUMN = "required_fields";
+    private static final String COMMENT_ROOT_ID_COLUMN = "root_id";
+    private static final String COMMENT_DEPTH_COLUMN = "depth";
+    private static final String COMMENT_IS_COLLAPSED_COLUMN = "is_collapsed";
 
     private static final List<SeedCard> SEED_CARDS = List.of(
             new SeedCard(
@@ -53,6 +56,10 @@ public class SchemaMigrationRunner implements ApplicationRunner {
         ensureFaultInfoColumn();
         ensureRequiredFieldsColumn();
         syncRequiredFieldsSeed();
+        ensureCommentRootIdColumn();
+        ensureCommentDepthColumn();
+        ensureCommentIsCollapsedColumn();
+        backfillCommentDepthAndRootId();
     }
 
     private void ensureAccessoryCardsColumn() {
@@ -166,5 +173,119 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     }
 
     private record RequiredFieldsSeed(Long categoryId, String payload) {
+    }
+
+    private void ensureCommentRootIdColumn() {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 't_comment'
+                  AND COLUMN_NAME = ?
+                """,
+                Integer.class,
+                COMMENT_ROOT_ID_COLUMN
+        );
+
+        if (count != null && count > 0) {
+            return;
+        }
+
+        jdbcTemplate.execute(
+                "ALTER TABLE t_comment ADD COLUMN root_id BIGINT NULL COMMENT '根评论ID（主评论）' AFTER parent_id, ADD INDEX idx_root_id (root_id)"
+        );
+        log.info("Added missing column t_comment.{} for comment depth protection.", COMMENT_ROOT_ID_COLUMN);
+    }
+
+    private void ensureCommentDepthColumn() {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 't_comment'
+                  AND COLUMN_NAME = ?
+                """,
+                Integer.class,
+                COMMENT_DEPTH_COLUMN
+        );
+
+        if (count != null && count > 0) {
+            return;
+        }
+
+        jdbcTemplate.execute(
+                "ALTER TABLE t_comment ADD COLUMN depth INT DEFAULT 1 COMMENT '评论深度，1为主评论，2为直接回复，以此类推' AFTER content"
+        );
+        log.info("Added missing column t_comment.{} for comment depth protection.", COMMENT_DEPTH_COLUMN);
+    }
+
+    private void ensureCommentIsCollapsedColumn() {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 't_comment'
+                  AND COLUMN_NAME = ?
+                """,
+                Integer.class,
+                COMMENT_IS_COLLAPSED_COLUMN
+        );
+
+        if (count != null && count > 0) {
+            return;
+        }
+
+        jdbcTemplate.execute(
+                "ALTER TABLE t_comment ADD COLUMN is_collapsed TINYINT DEFAULT 0 COMMENT '是否因深度超限被自动收束 0:否 1:是' AFTER depth"
+        );
+        log.info("Added missing column t_comment.{} for comment depth protection.", COMMENT_IS_COLLAPSED_COLUMN);
+    }
+
+    private void backfillCommentDepthAndRootId() {
+        Integer nullCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM t_comment WHERE depth IS NULL OR root_id IS NULL",
+                Integer.class
+        );
+
+        if (nullCount == null || nullCount == 0) {
+            return;
+        }
+
+        jdbcTemplate.execute(
+                """
+                UPDATE t_comment c1
+                SET c1.depth = 1, c1.root_id = c1.id
+                WHERE c1.parent_id IS NULL
+                  AND (c1.depth IS NULL OR c1.root_id IS NULL)
+                """
+        );
+
+        int updated;
+        int maxIterations = 10;
+        do {
+            updated = jdbcTemplate.update(
+                    """
+                    UPDATE t_comment child
+                    INNER JOIN t_comment parent ON child.parent_id = parent.id
+                    SET child.depth = parent.depth + 1,
+                        child.root_id = COALESCE(parent.root_id, parent.id)
+                    WHERE child.parent_id IS NOT NULL
+                      AND (child.depth IS NULL OR child.root_id IS NULL)
+                    """
+            );
+            maxIterations--;
+        } while (updated > 0 && maxIterations > 0);
+
+        jdbcTemplate.execute(
+                "UPDATE t_comment SET depth = 1 WHERE depth IS NULL OR depth < 1"
+        );
+        jdbcTemplate.execute(
+                "UPDATE t_comment SET root_id = id WHERE root_id IS NULL"
+        );
+
+        log.info("Backfilled depth and root_id for {} existing comments.", nullCount);
     }
 }
