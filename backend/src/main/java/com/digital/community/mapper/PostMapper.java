@@ -23,4 +23,6 @@ public interface PostMapper extends BaseMapper<Post> {
     List<PostVO> selectHelpPostsByModelKeyword(@Param("keyword") String keyword, @Param("categoryId") Long categoryId);
 
     List<PostVO> selectAllHelpPosts(@Param("categoryId") Long categoryId);
+
+    List<PostVO> selectAllExperiencePosts(@Param("categoryId") Long categoryId);
 }

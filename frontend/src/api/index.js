@@ -20,3 +20,4 @@ export const createComment = (data) => request.post('/comments', data)
 
 export const getFaultSuggestions = (params) => request.get('/posts/fault-suggestions', { params })
 export const getFaultHotModels = (params) => request.get('/posts/fault-hot-models', { params })
+export const getCollocationSchemes = (params) => request.get('/posts/collocation-schemes', { params })

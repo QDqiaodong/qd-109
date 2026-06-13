@@ -73,6 +73,9 @@
       </div>
 
       <div class="header-right">
+        <router-link to="/collocation-rank" class="btn-collocation">
+          <span>🔗 搭配榜</span>
+        </router-link>
         <router-link to="/fault-rank" class="btn-fault">
           <span>📊 故障榜</span>
         </router-link>
@@ -518,6 +521,23 @@ const handleRegister = async () => {
     display: flex;
     align-items: center;
     gap: 12px;
+
+    .btn-collocation {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #666;
+      background: #f5f7fa;
+      transition: all 0.2s;
+
+      &:hover {
+        background: linear-gradient(135deg, #f0f5ff, #e6f0ff);
+        color: #1d39c4;
+      }
+    }
 
     .btn-fault {
       display: flex;

@@ -6,6 +6,7 @@ import com.digital.community.context.UserContext;
 import com.digital.community.dto.PostDTO;
 import com.digital.community.exception.UnauthorizedException;
 import com.digital.community.service.PostService;
+import com.digital.community.vo.CollocationSchemeVO;
 import com.digital.community.vo.FaultThemeSuggestionVO;
 import com.digital.community.vo.ModelFaultStatsVO;
 import com.digital.community.vo.PostVO;
@@ -82,5 +83,14 @@ public class PostController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "20") Integer limit) {
         return Result.success(postService.getHotFaultModels(categoryId, limit));
+    }
+
+    @GetMapping("/collocation-schemes")
+    public Result<List<CollocationSchemeVO>> collocationSchemes(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "2") Integer minItems,
+            @RequestParam(defaultValue = "5") Integer maxItems,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        return Result.success(postService.getCollocationSchemes(categoryId, minItems, maxItems, limit));
     }
 }

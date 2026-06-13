@@ -10,6 +10,7 @@ import com.digital.community.entity.Post;
 import com.digital.community.mapper.CategoryMapper;
 import com.digital.community.mapper.PostMapper;
 import com.digital.community.vo.AccessoryCardVO;
+import com.digital.community.vo.CollocationSchemeVO;
 import com.digital.community.vo.FaultThemeSuggestionVO;
 import com.digital.community.vo.FaultThemeVO;
 import com.digital.community.vo.ImageGroupVO;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,9 @@ public class PostService {
     private static final String LATEST_PAGE_KEY_PREFIX = "post:page:latest:";
     private static final long CACHE_EXPIRE = 30;
     private static final long VIEW_COUNT_EXPIRE_MINUTES = 30;
+
+    private static final String COLLOCATION_SCHEME_KEY_PREFIX = "post:collocation:";
+    private static final long COLLOCATION_CACHE_EXPIRE_MINUTES = 60;
 
     private static final long PAGE_1_EXPIRE_MINUTES = 2;
     private static final long PAGE_2_EXPIRE_MINUTES = 5;
@@ -287,6 +292,7 @@ public class PostService {
         redisTemplate.delete(LATEST_POSTS_KEY);
         redisTemplate.delete(HOT_POSTS_KEY);
         invalidateLatestPageCache();
+        invalidateCollocationCache();
 
         return post.getId();
     }
@@ -649,6 +655,159 @@ public class PostService {
         s = s.replaceAll("\\s+", " ");
         s = s.replaceAll("[\\(\\)（）【】\\[\\]]", "");
         return s.length() > 50 ? s.substring(0, 50) : s;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<CollocationSchemeVO> getCollocationSchemes(Long categoryId, Integer minItems, Integer maxItems, Integer limit) {
+        String cacheKey = buildCollocationCacheKey(categoryId, minItems, maxItems, limit);
+        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            try {
+                return (List<CollocationSchemeVO>) cached;
+            } catch (Exception e) {
+                redisTemplate.delete(cacheKey);
+            }
+        }
+
+        List<PostVO> posts = postMapper.selectAllExperiencePosts(categoryId);
+        List<CollocationSchemeVO> schemes = aggregateCollocationSchemes(posts, minItems, maxItems, limit);
+
+        try {
+            redisTemplate.opsForValue().set(cacheKey, schemes, COLLOCATION_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        } catch (Exception ignored) {
+        }
+
+        return schemes;
+    }
+
+    private String buildCollocationCacheKey(Long categoryId, Integer minItems, Integer maxItems, Integer limit) {
+        StringBuilder sb = new StringBuilder(COLLOCATION_SCHEME_KEY_PREFIX);
+        if (categoryId != null) {
+            sb.append("c:").append(categoryId).append(":");
+        }
+        sb.append("min:").append(minItems != null ? minItems : 2).append(":");
+        sb.append("max:").append(maxItems != null ? maxItems : 5).append(":");
+        sb.append("limit:").append(limit != null ? limit : 20);
+        return sb.toString();
+    }
+
+    public void invalidateCollocationCache() {
+        try {
+            Set<String> keys = redisTemplate.keys(COLLOCATION_SCHEME_KEY_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private List<CollocationSchemeVO> aggregateCollocationSchemes(List<PostVO> posts, Integer minItems, Integer maxItems, Integer limit) {
+        int min = minItems != null ? minItems : 2;
+        int max = maxItems != null ? maxItems : 5;
+        int maxLimit = limit != null ? limit : 20;
+
+        Map<String, CollocationAccumulator> schemeMap = new java.util.LinkedHashMap<>();
+        int totalPostsWithAccessories = 0;
+
+        for (PostVO post : posts) {
+            List<AccessoryCardVO> cards = post.getAccessoryCards();
+            if (cards == null || cards.isEmpty()) continue;
+
+            List<String> models = cards.stream()
+                    .map(AccessoryCardVO::getModel)
+                    .filter(m -> m != null && !m.isBlank())
+                    .map(this::normalizeModelName)
+                    .filter(m -> !m.isBlank())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            if (models.size() < min) continue;
+            totalPostsWithAccessories++;
+
+            List<List<String>> subsets = generateSubsets(models, min, Math.min(max, models.size()));
+
+            for (List<String> subset : subsets) {
+                String key = generateSchemeKey(subset);
+                CollocationAccumulator acc = schemeMap.computeIfAbsent(key, k -> {
+                    CollocationAccumulator a = new CollocationAccumulator();
+                    a.accessoryModels = new ArrayList<>(subset);
+                    a.itemCount = subset.size();
+                    a.categoryId = post.getCategoryId();
+                    a.categoryName = post.getCategoryName();
+                    return a;
+                });
+                acc.postCount++;
+                acc.totalViews += post.getViewCount() != null ? post.getViewCount() : 0;
+                acc.totalComments += post.getCommentCount() != null ? post.getCommentCount() : 0;
+                if (acc.relatedPosts.size() < 5) {
+                    acc.relatedPosts.add(post);
+                }
+            }
+        }
+
+        final int total = totalPostsWithAccessories;
+        List<CollocationSchemeVO> result = schemeMap.entrySet().stream()
+                .map(e -> {
+                    CollocationSchemeVO vo = new CollocationSchemeVO();
+                    CollocationAccumulator acc = e.getValue();
+                    vo.setSchemeKey(e.getKey());
+                    vo.setAccessoryModels(acc.accessoryModels);
+                    vo.setItemCount(acc.itemCount);
+                    vo.setPostCount(acc.postCount);
+                    vo.setCategoryId(acc.categoryId);
+                    vo.setCategoryName(acc.categoryName);
+                    vo.setPercentage(total > 0 ? Math.round(acc.postCount * 1000.0 / total) / 10.0 : 0.0);
+                    vo.setRelatedPosts(acc.relatedPosts);
+                    vo.setTotalViews(acc.totalViews);
+                    vo.setTotalComments(acc.totalComments);
+                    return vo;
+                })
+                .sorted((a, b) -> {
+                    int cmp = b.getPostCount() - a.getPostCount();
+                    if (cmp != 0) return cmp;
+                    return b.getTotalViews() - a.getTotalViews();
+                })
+                .limit(maxLimit)
+                .collect(Collectors.toList());
+
+        return result;
+    }
+
+    private List<List<String>> generateSubsets(List<String> items, int minSize, int maxSize) {
+        List<List<String>> result = new java.util.ArrayList<>();
+        int n = items.size();
+        for (int size = minSize; size <= maxSize; size++) {
+            generateSubsetsHelper(items, 0, size, new java.util.ArrayList<>(), result);
+        }
+        return result;
+    }
+
+    private void generateSubsetsHelper(List<String> items, int start, int size, List<String> current, List<List<String>> result) {
+        if (current.size() == size) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+        for (int i = start; i < items.size(); i++) {
+            current.add(items.get(i));
+            generateSubsetsHelper(items, i + 1, size, current, result);
+            current.remove(current.size() - 1);
+        }
+    }
+
+    private String generateSchemeKey(List<String> models) {
+        return String.join(" | ", models);
+    }
+
+    private static class CollocationAccumulator {
+        List<String> accessoryModels;
+        int itemCount;
+        int postCount;
+        Long categoryId;
+        String categoryName;
+        int totalViews;
+        int totalComments;
+        final List<PostVO> relatedPosts = new java.util.ArrayList<>();
     }
 
     private static class ModelAccumulator {

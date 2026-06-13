@@ -35,6 +35,11 @@ const routes = [
     path: '/fault-rank',
     name: 'FaultRank',
     component: () => import('@/views/FaultRank.vue')
+  },
+  {
+    path: '/collocation-rank',
+    name: 'CollocationRank',
+    component: () => import('@/views/CollocationRank.vue')
   }
 ]
 
