@@ -132,9 +132,9 @@ public class PostService {
 
     private void invalidateLatestPageCache() {
         try {
-            Set<String> headKeys = redisTemplate.keys(LATEST_PAGE_KEY_PREFIX + "p:1:*");
-            if (headKeys != null && !headKeys.isEmpty()) {
-                redisTemplate.delete(headKeys);
+            Set<String> allKeys = redisTemplate.keys(LATEST_PAGE_KEY_PREFIX + "*");
+            if (allKeys != null && !allKeys.isEmpty()) {
+                redisTemplate.delete(allKeys);
             }
         } catch (Exception ignored) {
         }

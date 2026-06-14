@@ -28,12 +28,12 @@
             />
           </div>
 
-          <div class="fault-info-card" v-if="post?.type === 2 && post?.faultInfo && hasFaultInfo">
+          <div class="fault-info-card" v-if="post?.type === 2 && post?.faultInfo">
             <div class="fault-card-header">
               <span class="fault-card-icon">📋</span>
               <span class="fault-card-title">故障信息</span>
             </div>
-            <div class="fault-card-body">
+            <div class="fault-card-body" v-if="hasFaultInfo">
               <div class="fault-row" v-if="post.faultInfo.deviceModel">
                 <span class="fault-label">📱 设备型号</span>
                 <span class="fault-value">{{ post.faultInfo.deviceModel }}</span>
@@ -62,6 +62,10 @@
                 <span class="fault-label">🔄 已尝试动作</span>
                 <span class="fault-value fault-value-block">{{ post.faultInfo.triedActions }}</span>
               </div>
+            </div>
+            <div class="fault-card-body fault-card-empty" v-else>
+              <div class="empty-icon">📭</div>
+              <div class="empty-text">暂无故障信息</div>
             </div>
           </div>
 
@@ -792,6 +796,22 @@ const cancelReply = () => {
     .fault-row-block {
       flex-direction: column;
       gap: 6px;
+    }
+
+    .fault-card-empty {
+      text-align: center;
+      padding: 32px 20px;
+
+      .empty-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+        opacity: 0.6;
+      }
+
+      .empty-text {
+        font-size: 14px;
+        color: #999;
+      }
     }
   }
 

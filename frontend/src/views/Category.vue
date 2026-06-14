@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPostList, getCategories } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
@@ -74,13 +74,16 @@ import PostSkeleton from '@/components/PostSkeleton.vue'
 import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
 import CompareBar from '@/components/CompareBar.vue'
 import { useCompareStore } from '@/store/compare'
+import { usePostStore } from '@/store/post'
 
 const compareStore = useCompareStore()
+const postStore = usePostStore()
 const route = useRoute()
 const router = useRouter()
 const categoryId = computed(() => Number(route.params.id))
 const categories = ref([])
 const postType = ref(null)
+let lastRefreshQuery = null
 
 const currentCategory = computed(() => {
   return categories.value.find(c => c.id === categoryId.value)
@@ -112,11 +115,60 @@ watch(categoryId, () => {
   window.scrollTo({ top: 0, behavior: 'auto' })
 })
 
+watch(
+  () => [route.query.type, route.query.refresh],
+  () => {
+    const newType = route.query.type
+    const refreshToken = route.query.refresh
+
+    if (newType !== undefined && newType !== null) {
+      const parsedType = Number(newType)
+      if ([1, 2].includes(parsedType) && postType.value !== parsedType) {
+        postType.value = parsedType
+      }
+    }
+
+    if (refreshToken && refreshToken !== lastRefreshQuery) {
+      lastRefreshQuery = refreshToken
+      nextTick(() => {
+        infinite.reload()
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      })
+    }
+  }
+)
+
+const checkStoreRefresh = () => {
+  if (postStore.consumeRefreshFlag()) {
+    const ctx = postStore.getAndClearLastContext()
+    if (ctx.postType && [1, 2].includes(ctx.postType)) {
+      postType.value = ctx.postType
+    }
+    nextTick(() => {
+      infinite.reload()
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    })
+  }
+}
+
 onMounted(async () => {
   await router.isReady()
   compareStore.init()
   compareStore.syncFromStorage()
   loadCategories()
+
+  const queryType = route.query.type
+  if (queryType !== undefined && queryType !== null) {
+    const parsedType = Number(queryType)
+    if ([1, 2].includes(parsedType)) {
+      postType.value = parsedType
+    }
+  }
+  if (route.query.refresh) {
+    lastRefreshQuery = route.query.refresh
+  }
+
+  checkStoreRefresh()
   infinite.loadMore()
 })
 

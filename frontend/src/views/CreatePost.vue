@@ -101,9 +101,10 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getCategories, createPost } from '@/api'
 import { useUserStore } from '@/store/user'
+import { usePostStore } from '@/store/post'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ImageUpload from '@/components/ImageUpload.vue'
 import FaultTemplate from '@/components/FaultTemplate.vue'
@@ -119,7 +120,9 @@ const fieldLabelMap = {
 }
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const postStore = usePostStore()
 const categories = ref([])
 const images = ref([])
 const imageInfo = ref({ successCount: 0, failedCount: 0, all: [] })
@@ -257,7 +260,20 @@ const doSubmit = async () => {
     }
     await createPost(payload)
     ElMessage.success('发布成功')
-    router.push('/')
+
+    postStore.markListDirty(form.type, form.categoryId)
+
+    if (form.categoryId) {
+      router.push({
+        path: `/category/${form.categoryId}`,
+        query: { type: form.type, refresh: Date.now() }
+      })
+    } else {
+      router.push({
+        path: '/',
+        query: { refresh: Date.now() }
+      })
+    }
   } catch (e) {
   } finally {
     submitting.value = false

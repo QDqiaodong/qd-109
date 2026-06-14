@@ -63,7 +63,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { getPostList, getHotPosts } from '@/api'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import PostCard from '@/components/PostCard.vue'
@@ -72,11 +73,15 @@ import InfiniteLoadMore from '@/components/InfiniteLoadMore.vue'
 import CompareBar from '@/components/CompareBar.vue'
 import CategoryQuickBar from '@/components/CategoryQuickBar.vue'
 import { useCompareStore } from '@/store/compare'
+import { usePostStore } from '@/store/post'
 
 const compareStore = useCompareStore()
+const postStore = usePostStore()
+const route = useRoute()
 const activeTab = ref('latest')
 const hotPosts = ref([])
 const hotLoading = ref(false)
+let lastRefreshQuery = null
 
 const fetchPosts = (params) => {
   return getPostList({
@@ -97,9 +102,39 @@ const handleTabChange = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+watch(
+  () => route.query.refresh,
+  (refreshToken) => {
+    if (refreshToken && refreshToken !== lastRefreshQuery) {
+      lastRefreshQuery = refreshToken
+      nextTick(() => {
+        infinite.reload()
+        loadHotPosts()
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      })
+    }
+  }
+)
+
+const checkStoreRefresh = () => {
+  if (postStore.consumeRefreshFlag()) {
+    nextTick(() => {
+      infinite.reload()
+      loadHotPosts()
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    })
+  }
+}
+
 onMounted(() => {
   compareStore.init()
   compareStore.syncFromStorage()
+
+  if (route.query.refresh) {
+    lastRefreshQuery = route.query.refresh
+  }
+
+  checkStoreRefresh()
   infinite.loadMore()
   loadHotPosts()
 })
