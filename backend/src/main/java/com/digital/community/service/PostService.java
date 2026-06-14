@@ -337,6 +337,8 @@ public class PostService {
 
     private AccessoryCardVO convertToVO(AccessoryCardDTO dto) {
         AccessoryCardVO vo = new AccessoryCardVO();
+        vo.setCategory(dto.getCategory());
+        vo.setRole(dto.getRole());
         vo.setModel(dto.getModel());
         vo.setInterfaceType(dto.getInterfaceType());
         vo.setCompatibleDevices(dto.getCompatibleDevices());

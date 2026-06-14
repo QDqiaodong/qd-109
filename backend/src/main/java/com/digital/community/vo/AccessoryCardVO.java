@@ -5,6 +5,8 @@ import java.util.List;
 
 @Data
 public class AccessoryCardVO {
+    private String category;
+    private String role;
     private String model;
     private String interfaceType;
     private List<String> compatibleDevices;

@@ -58,6 +58,10 @@
               <ImageUpload ref="imageUploadRef" v-model="images" :limit="9" @change="handleImageChange" />
             </el-form-item>
 
+            <el-form-item label="设备组合" v-if="form.type === 1">
+              <AccessoryCardEditor v-model="form.accessoryCards" />
+            </el-form-item>
+
             <el-form-item>
               <el-button type="primary" size="large" @click="submit" :loading="submitting">
                 发布帖子
@@ -108,6 +112,7 @@ import { usePostStore } from '@/store/post'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ImageUpload from '@/components/ImageUpload.vue'
 import FaultTemplate from '@/components/FaultTemplate.vue'
+import AccessoryCardEditor from '@/components/AccessoryCardEditor.vue'
 
 const fieldLabelMap = {
   deviceModel: '设备型号',
@@ -135,7 +140,8 @@ const form = reactive({
   type: 1,
   categoryId: null,
   title: '',
-  content: ''
+  content: '',
+  accessoryCards: []
 })
 
 const currentRequiredFields = computed(() => {
@@ -251,9 +257,11 @@ const doSubmit = async () => {
 
   submitting.value = true
   try {
+    const validAccessoryCards = (form.accessoryCards || []).filter(card => card && card.model && card.model.trim())
     const payload = {
       ...form,
-      images: images.value
+      images: images.value,
+      accessoryCards: validAccessoryCards
     }
     if (form.type === 2 && faultData.value) {
       payload.faultInfo = { ...faultData.value }

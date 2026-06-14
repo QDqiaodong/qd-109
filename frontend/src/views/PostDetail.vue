@@ -20,7 +20,11 @@
             <span class="category-tag">{{ post?.categoryName }}</span>
           </div>
 
-          <div class="accessory-cards" v-if="post?.accessoryCards?.length">
+          <div class="accessory-cards" v-if="hasCollocationScheme">
+            <CollocationSchemeCard :accessory-cards="post.accessoryCards" />
+          </div>
+
+          <div class="accessory-cards" v-else-if="post?.accessoryCards?.length">
             <AccessoryCard
               v-for="(card, idx) in post.accessoryCards"
               :key="idx"
@@ -348,6 +352,7 @@ import { useCompareStore } from '@/store/compare'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Reading, ArrowLeft, ArrowRight, Collection, Close } from '@element-plus/icons-vue'
 import AccessoryCard from '@/components/AccessoryCard.vue'
+import CollocationSchemeCard from '@/components/CollocationSchemeCard.vue'
 import CompareBar from '@/components/CompareBar.vue'
 import BeforeAfterViewer from '@/components/BeforeAfterViewer.vue'
 import QuoteBubble from '@/components/QuoteBubble.vue'
@@ -418,6 +423,15 @@ const hasImageGroups = computed(() =>
   Array.isArray(post.value.imageGroups) &&
   post.value.imageGroups.some(g => g.images && g.images.length > 0)
 )
+
+const hasCollocationScheme = computed(() => {
+  const cards = post.value?.accessoryCards
+  if (!cards || !Array.isArray(cards) || cards.length === 0) return false
+  const hasCategorized = cards.some(c => c.category === 'main' || c.category === 'core' || c.category === 'peripheral')
+  const hasMain = cards.some(c => c.category === 'main')
+  const totalWithCategory = cards.filter(c => c.category && c.model).length
+  return hasCategorized && (hasMain || totalWithCategory >= 3)
+})
 
 const sortedImageGroups = computed(() => {
   if (!hasImageGroups.value) return []

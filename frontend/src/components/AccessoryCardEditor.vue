@@ -1,16 +1,28 @@
 <template>
   <div class="accessory-card-editor">
     <div class="editor-header">
-      <span class="header-title">🔧 配件参数卡片</span>
-      <el-button type="primary" size="small" @click="addCard" :disabled="cards.length >= 5">
-        + 添加卡片
+      <span class="header-title">🔧 设备组合卡片</span>
+      <el-button type="primary" size="small" @click="addCard" :disabled="cards.length >= 8">
+        + 添加设备
       </el-button>
+    </div>
+
+    <div class="category-hint">
+      <el-tag type="primary" effect="plain">🖥️ 主设备</el-tag>
+      <el-tag type="success" effect="plain">⚡ 核心配件</el-tag>
+      <el-tag type="warning" effect="plain">🔌 补充外设</el-tag>
+      <span class="hint-text">分类后可在详情页自动生成组合卡片</span>
     </div>
 
     <div class="cards-list" v-if="cards.length > 0">
       <div v-for="(card, index) in cards" :key="index" class="card-item">
         <div class="card-header">
-          <span class="card-index">卡片 {{ index + 1 }}</span>
+          <div class="card-header-left">
+            <el-tag :type="getCategoryTagType(card.category)" size="small">
+              {{ getCategoryLabel(card.category) }}
+            </el-tag>
+            <span class="card-index">设备 {{ index + 1 }}</span>
+          </div>
           <el-button type="danger" link size="small" @click="removeCard(index)">
             删除
           </el-button>
@@ -18,12 +30,29 @@
 
         <div class="card-body">
           <el-form :model="card" label-width="90px" size="small">
+            <el-form-item label="设备分类">
+              <el-radio-group v-model="card.category">
+                <el-radio label="main">🖥️ 主设备</el-radio>
+                <el-radio label="core">⚡ 核心配件</el-radio>
+                <el-radio label="peripheral">🔌 补充外设</el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="作用说明">
+              <el-input
+                v-model="card.role"
+                placeholder="描述该设备在整套方案中的作用，如：提供计算性能、输出画面、扩展接口等"
+                maxlength="100"
+                show-word-limit
+              />
+            </el-form-item>
+
             <el-form-item label="型号">
-              <el-input v-model="card.model" placeholder="如：AirPods Pro 2" maxlength="50" />
+              <el-input v-model="card.model" placeholder="如：MacBook Pro 14寸 M3" maxlength="50" />
             </el-form-item>
 
             <el-form-item label="接口类型">
-              <el-input v-model="card.interfaceType" placeholder="如：Type-C、Lightning、蓝牙5.3" maxlength="50" />
+              <el-input v-model="card.interfaceType" placeholder="如：Thunderbolt 4、Type-C、蓝牙5.3" maxlength="50" />
             </el-form-item>
 
             <el-form-item label="适配设备">
@@ -83,7 +112,7 @@
     </div>
 
     <div class="empty-tip" v-else>
-      <el-empty description="暂无配件卡片，点击上方按钮添加" :image-size="80" />
+      <el-empty description="暂无设备，点击上方按钮添加主设备、核心配件和补充外设" :image-size="80" />
     </div>
   </div>
 </template>
@@ -124,7 +153,27 @@ const conOptions = [
   '功能单一', '不防水', '充电慢', '易沾指纹'
 ]
 
+const getCategoryLabel = (category) => {
+  const map = {
+    main: '🖥️ 主设备',
+    core: '⚡ 核心配件',
+    peripheral: '🔌 补充外设'
+  }
+  return map[category] || '未分类'
+}
+
+const getCategoryTagType = (category) => {
+  const map = {
+    main: 'primary',
+    core: 'success',
+    peripheral: 'warning'
+  }
+  return map[category] || 'info'
+}
+
 const createEmptyCard = () => ({
+  category: 'core',
+  role: '',
   model: '',
   interfaceType: '',
   compatibleDevices: [],
@@ -168,12 +217,28 @@ watch(
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 
     .header-title {
       font-size: 15px;
       font-weight: 600;
       color: #333;
+    }
+  }
+
+  .category-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: #f5f7fa;
+    border-radius: 8px;
+
+    .hint-text {
+      margin-left: auto;
+      font-size: 12px;
+      color: #909399;
     }
   }
 
@@ -185,17 +250,29 @@ watch(
 
   .card-item {
     border: 1px solid #e8e8e8;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #fafafa;
     overflow: hidden;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #d0d0d0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
 
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px 16px;
-      background: #f0f0f0;
+      background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
       border-bottom: 1px solid #e8e8e8;
+
+      .card-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
 
       .card-index {
         font-size: 13px;
@@ -206,6 +283,7 @@ watch(
 
     .card-body {
       padding: 16px;
+      background: #fff;
     }
   }
 
