@@ -28,6 +28,12 @@
             />
           </div>
 
+          <PitfallSummaryCard
+            v-if="post?.type === 1"
+            :post-pitfalls="postPitfalls"
+            :comment-reminders="commentReminders"
+          />
+
           <div class="fault-info-card" v-if="post?.type === 2 && post?.faultInfo">
             <div class="fault-card-header">
               <span class="fault-card-icon">📋</span>
@@ -345,6 +351,7 @@ import AccessoryCard from '@/components/AccessoryCard.vue'
 import CompareBar from '@/components/CompareBar.vue'
 import BeforeAfterViewer from '@/components/BeforeAfterViewer.vue'
 import QuoteBubble from '@/components/QuoteBubble.vue'
+import PitfallSummaryCard from '@/components/PitfallSummaryCard.vue'
 
 const GROUP_META = {
   appearance: { icon: '🎨', color: '#722ed1', desc: '产品整体外观、设计语言、做工细节' },
@@ -573,6 +580,99 @@ const hasFaultInfo = computed(() => {
   const fi = post.value.faultInfo
   return fi.deviceModel || fi.accessoryModel || fi.connectionType ||
          fi.platform || fi.environment || fi.symptoms || fi.triedActions
+})
+
+const PITFALL_KEYWORDS = [
+  '别买', '别买错', '别接反', '别盲升', '别升级', '别乱升',
+  '不要买', '不要乱', '不要升', '不要接', '不要装', '不要用',
+  '注意', '请注意', '一定要注意', '特别注意',
+  '坑', '踩坑', '避坑', '雷区', '踩雷',
+  '警告', '提醒', '建议', '奉劝',
+  '切勿', '千万不要', '千万别', '绝对不要',
+  '不推荐', '不建议', '不适合',
+  '容易坏', '容易出', '容易烧',
+  '小心', '当心',
+  '不兼容', '兼容问题', '驱动问题',
+  '翻车', '血的教训', '惨痛教训',
+  '缺点', '不足', '问题是', '毛病'
+]
+
+const COMMENT_REMINDER_KEYWORDS = [
+  '提醒', '注意', '别', '不要', '建议', '小心', '坑',
+  '补充', '说一下', '亲测', '实测', '补充一下',
+  '同问', '同样', '我也', '我也是',
+  '避雷', '避坑', '踩坑', '踩雷'
+]
+
+const extractSentences = (text) => {
+  if (!text) return []
+  const cleaned = text.replace(/\n/g, '。').replace(/。+/g, '。')
+  const sentences = cleaned.split(/[。！？!?\n]/).filter(s => s.trim().length > 3)
+  return sentences.map(s => s.trim())
+}
+
+const containsKeyword = (text, keywords) => {
+  const lowerText = text.toLowerCase()
+  return keywords.some(kw => lowerText.includes(kw.toLowerCase()))
+}
+
+const cleanPitfallText = (text) => {
+  let cleaned = text.trim()
+  if (cleaned.length > 80) {
+    cleaned = cleaned.slice(0, 80) + '...'
+  }
+  return cleaned
+}
+
+const postPitfalls = computed(() => {
+  if (!post.value?.content || post.value.type !== 1) return []
+  const sentences = extractSentences(post.value.content)
+  const pitfalls = []
+  const seen = new Set()
+
+  for (const sentence of sentences) {
+    if (containsKeyword(sentence, PITFALL_KEYWORDS)) {
+      const cleaned = cleanPitfallText(sentence)
+      if (!seen.has(cleaned)) {
+        seen.add(cleaned)
+        pitfalls.push(cleaned)
+        if (pitfalls.length >= 5) break
+      }
+    }
+  }
+
+  return pitfalls
+})
+
+const commentReminders = computed(() => {
+  if (!comments.value || comments.value.length === 0) return []
+  const reminders = []
+  const seen = new Set()
+  const topComments = comments.value.slice(0, 10)
+
+  for (const comment of topComments) {
+    const text = comment.content || ''
+    if (!text || text.length < 5) continue
+
+    const sentences = extractSentences(text)
+    for (const sentence of sentences) {
+      if (containsKeyword(sentence, COMMENT_REMINDER_KEYWORDS)) {
+        const cleaned = cleanPitfallText(sentence)
+        if (!seen.has(cleaned)) {
+          seen.add(cleaned)
+          reminders.push({
+            text: cleaned,
+            nickname: comment.nickname,
+            floor: comment.floor
+          })
+          if (reminders.length >= 4) break
+        }
+      }
+    }
+    if (reminders.length >= 4) break
+  }
+
+  return reminders
 })
 
 let unsubscribeCompare = null
