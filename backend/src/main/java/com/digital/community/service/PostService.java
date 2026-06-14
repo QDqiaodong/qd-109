@@ -9,6 +9,7 @@ import com.digital.community.entity.Category;
 import com.digital.community.entity.Post;
 import com.digital.community.mapper.CategoryMapper;
 import com.digital.community.mapper.PostMapper;
+import com.digital.community.util.TransactionContentValidator;
 import com.digital.community.vo.AccessoryCardVO;
 import com.digital.community.vo.CollocationSchemeVO;
 import com.digital.community.vo.FaultThemeSuggestionVO;
@@ -233,6 +234,9 @@ public class PostService {
 
     @Transactional(rollbackFor = Exception.class)
     public Long create(Long userId, PostDTO dto) {
+        TransactionContentValidator.validate(dto.getTitle());
+        TransactionContentValidator.validate(dto.getContent());
+
         if (dto.getType() != null && dto.getType() == 2) {
             validateHelpPostFields(dto);
         }

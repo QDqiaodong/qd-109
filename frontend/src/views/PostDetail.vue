@@ -339,7 +339,7 @@ import { useRoute } from 'vue-router'
 import { getPostDetail, getComments, createComment } from '@/api'
 import { useUserStore } from '@/store/user'
 import { useCompareStore } from '@/store/compare'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Reading, ArrowLeft, ArrowRight, Collection, Close } from '@element-plus/icons-vue'
 import AccessoryCard from '@/components/AccessoryCard.vue'
 import CompareBar from '@/components/CompareBar.vue'
@@ -651,7 +651,15 @@ const submitComment = async () => {
     commentContent.value = ''
     replyingTo.value = null
     loadComments()
-  } catch (e) {}
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.message || ''
+    if (msg.includes('交易') || msg.includes('收款') || msg.includes('联系方式') || msg.includes('售卖') || msg.includes('报价') || msg.includes('经验交流')) {
+      ElMessageBox.alert(msg || '评论内容包含交易相关信息，社区仅支持经验交流，请修改后重试', '内容审核提示', {
+        confirmButtonText: '我知道了',
+        type: 'warning'
+      })
+    }
+  }
 }
 
 const replyTo = (comment) => {

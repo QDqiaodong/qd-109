@@ -7,7 +7,6 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -30,6 +29,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("Illegal argument: {}", e.getMessage());
+        return Result.error(400, e.getMessage());
+    }
+
+    @ExceptionHandler(TransactionContentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleTransactionContentException(TransactionContentException e) {
+        log.warn("Transaction content blocked: {}", e.getMessage());
         return Result.error(400, e.getMessage());
     }
 

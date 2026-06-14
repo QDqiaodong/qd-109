@@ -3,6 +3,7 @@ package com.digital.community.service;
 import com.digital.community.dto.CommentDTO;
 import com.digital.community.entity.Comment;
 import com.digital.community.mapper.CommentMapper;
+import com.digital.community.util.TransactionContentValidator;
 import com.digital.community.vo.CommentVO;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -112,6 +113,8 @@ public class CommentService {
 
     @Transactional(rollbackFor = Exception.class)
     public Long create(Long userId, CommentDTO dto) {
+        TransactionContentValidator.validate(dto.getContent());
+
         String idempotentKey = buildIdempotentKey(userId, dto);
         Boolean absent = redisTemplate.opsForValue().setIfAbsent(idempotentKey, "1", COMMENT_SUBMIT_LOCK_SECONDS, TimeUnit.SECONDS);
         if (Boolean.FALSE.equals(absent)) {
